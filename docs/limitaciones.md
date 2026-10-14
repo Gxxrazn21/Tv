@@ -16,7 +16,7 @@ Lista honesta del estado a **14 de octubre de 2026**.
 ## No probado o pendiente
 | Área | Situación | Qué falta |
 |---|---|---|
-| **Datos reales** | El entorno de desarrollo tenía bloqueado el acceso a football-data.org y OpenLigaDB. Los adaptadores se probaron con *fixtures* **sintéticos** escritos según la documentación, no con respuestas reales capturadas. La sincronización real contra OpenLigaDB falló por la política de red y el fallo quedó registrado en `/v1/sources`. | Ejecutar `openfoot sync` con red y una clave real de football-data.org, y revisar si la forma real de las respuestas coincide con los *fixtures*. |
+| **Datos reales** | **Verificado el 14/10/2026 en Vercel + Neon:** sincronización correcta con football-data.org (Champions, Championship…) y OpenLigaDB (`last_sync_ok: true` en ambas). Las pruebas automáticas siguen usando *fixtures* sintéticos. | Capturar respuestas reales (sin la clave) como *fixtures* de regresión. |
 | **Comprobación HTTP del catálogo** | No se pudo ejecutar (sin DNS ni acceso a esos dominios). | `openfoot check-links` antes de desplegar. |
 | **Condiciones de uso de las APIs** | Investigadas con buscador; muchos datos vienen de terceros (ver `docs/investigacion-apis.md`). | Leer los términos oficiales de football-data.org y OpenLigaDB (uso público, caché, atribución). |
 | **Catálogo de derechos** | Solo 8 derechos verificados (Mundial 2026 en los países nórdicos, ya terminado) y 3 directorios oficiales. Para la temporada 2026/27 casi todas las consultas mostrarán «No se encontró una transmisión oficial verificada…» y, si existe, el directorio oficial del organizador. | Revisar las entradas `pending_review` contra las fuentes oficiales y ampliar el catálogo por países. |
@@ -30,5 +30,5 @@ Lista honesta del estado a **14 de octubre de 2026**.
 | **Límite de solicitudes** | En memoria, por proceso. | Con varias réplicas, aplicarlo en el proxy inverso. |
 | **Accesibilidad** | Etiquetas semánticas y textos junto a los colores. | Auditoría con TalkBack y prueba con tamaños de texto grandes. |
 | **Localización** | Solo español. | Inglés y portugués. |
-| **Vercel** | Desplegado por el usuario (`backend/index.py` con el preset FastAPI, `vercel.json` solo con la tarea diaria). La primera versión, con reescrituras a `/api/index`, devolvía 404 en todas las rutas y se corrigió. La preparación automática y la sincronización bajo demanda se probaron en local contra PostgreSQL; falta confirmar que funcionan en Vercel. | Seguir `docs/despliegue-vercel.md`. |
+| **Vercel** | **Funcionando** en `https://tv-backend-five.vercel.app` (preset FastAPI, Neon). Se corrigieron dos fallos encontrados al desplegar: reescrituras a `/api/index` (404 en todo) y psycopg como extra opcional (`ModuleNotFoundError`). Preparación automática y sincronización bajo demanda verificadas. La tarea diaria aún no se ha observado ejecutándose. | Seguir `docs/despliegue-vercel.md`. |
 | **Docker** | La imagen se construye y arranca en la CI (`/health` y `/v1/competitions` responden). `docker-compose.yml` con PostgreSQL no se ha levantado. | `docker compose up --build`. |

@@ -7,7 +7,7 @@ en la pestaña *Actions* del repositorio.
 
 - Para que el APK apunte a tu servidor, define la variable de repositorio `OPENFOOT_API_URL`
   (*Settings → Secrets and variables → Actions → Variables*), por ejemplo `https://openfoot.tu-dominio.org`.
-  Sin ella, el APK usa `http://10.0.2.2:8000`, que solo funciona en el emulador con el backend local.
+  Sin ella, el APK usa el despliegue de Vercel del proyecto (`https://tv-backend-five.vercel.app`).
   En cualquier caso, la URL se puede cambiar en la app desde Ajustes → Servidor.
 - El APK de la CI va firmado con la **clave de depuración**: sirve para instalarlo y probarlo, no
   para publicarlo en una tienda.

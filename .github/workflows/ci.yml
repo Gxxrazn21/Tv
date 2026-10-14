@@ -73,10 +73,11 @@ jobs:
       - name: Pruebas
         run: flutter test
       - name: Compilar APK
-        # Para tu propio servidor: define la variable de repositorio OPENFOOT_API_URL.
+        # Servidor por defecto del APK: la variable de repositorio OPENFOOT_API_URL o, si no
+        # existe, el despliegue de Vercel del proyecto. Se puede cambiar en Ajustes → Servidor.
         run: >
           flutter build apk --release
-          --dart-define=OPENFOOT_API_URL=${{ vars.OPENFOOT_API_URL || 'http://10.0.2.2:8000' }}
+          --dart-define=OPENFOOT_API_URL=${{ vars.OPENFOOT_API_URL || 'https://tv-backend-five.vercel.app' }}
       - uses: actions/upload-artifact@v5
         with:
           name: openfoot-apk
