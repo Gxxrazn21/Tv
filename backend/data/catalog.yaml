@@ -1,0 +1,168 @@
+# Catálogo inicial de OpenFoot.
+#
+# REGLAS (ver docs/catalogo-y-verificacion.md):
+# - Solo las entradas con status: verified se muestran al público, y únicamente mientras su
+#   verificación no haya caducado (OPENFOOT_VERIFICATION_TTL_DAYS, 30 días por defecto).
+# - "verified" exige fuente (source_url), fecha (verified_at) y responsable (verified_by).
+# - Las entradas pending_review documentan indicios encontrados que AÚN NO se han podido
+#   confirmar contra la fuente oficial para la temporada en curso. No se publican.
+# - Que un dominio parezca legítimo no basta: official_domains lo fija una persona tras revisar.
+#
+# Investigación realizada el 2026-10-14 mediante búsqueda web. Desde el entorno de desarrollo
+# no se pudo descargar ninguna página (la red bloqueaba los dominios), así que ninguna entrada
+# ha pasado todavía la comprobación HTTP (`openfoot check-links`). Ejecútala antes de publicar.
+
+competitions:
+  # --- Europa -------------------------------------------------------------------------------
+  - {code: CL, name: UEFA Champions League, region: europe, area_name: Europa, kind: tournament,
+     data_status: available, data_source: football-data.org, featured: true}
+  - {code: EL, name: UEFA Europa League, region: europe, area_name: Europa, kind: tournament,
+     data_status: unavailable,
+     data_note: "No incluida en el plan gratuito de football-data.org según la documentación consultada. API-Football (100 solicitudes/día) podría cubrirla; adaptador no implementado."}
+  - {code: UECL, name: UEFA Conference League, region: europe, area_name: Europa, kind: tournament,
+     data_status: unavailable,
+     data_note: "Sin fuente gratuita integrada."}
+  - {code: PL, name: Premier League, region: europe, area_name: Inglaterra, area_code: GB,
+     data_status: available, data_source: football-data.org, featured: true}
+  - {code: ELC, name: EFL Championship, region: europe, area_name: Inglaterra, area_code: GB,
+     data_status: available, data_source: football-data.org}
+  - {code: PD, name: LaLiga, region: europe, area_name: España, area_code: ES,
+     data_status: available, data_source: football-data.org, featured: true}
+  - {code: SA, name: Serie A, region: europe, area_name: Italia, area_code: IT,
+     data_status: available, data_source: football-data.org, featured: true}
+  - {code: BL1, name: Bundesliga, region: europe, area_name: Alemania, area_code: DE,
+     data_status: available, data_source: "football-data.org / openligadb", featured: true}
+  - {code: BL2, name: 2. Bundesliga, region: europe, area_name: Alemania, area_code: DE,
+     data_status: available, data_source: openligadb}
+  - {code: FL1, name: Ligue 1, region: europe, area_name: Francia, area_code: FR,
+     data_status: available, data_source: football-data.org, featured: true}
+  - {code: DED, name: Eredivisie, region: europe, area_name: Países Bajos, area_code: NL,
+     data_status: available, data_source: football-data.org}
+  - {code: PPL, name: Primeira Liga, region: europe, area_name: Portugal, area_code: PT,
+     data_status: available, data_source: football-data.org}
+  - {code: CDR, name: Copa del Rey, region: europe, area_name: España, area_code: ES, kind: cup,
+     data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+  - {code: FAC, name: FA Cup, region: europe, area_name: Inglaterra, area_code: GB, kind: cup,
+     data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+
+  # --- Sudamérica ---------------------------------------------------------------------------
+  - {code: BSA, name: Brasileirão Série A, region: south_america, area_name: Brasil,
+     area_code: BR, data_status: available, data_source: football-data.org, featured: true}
+  - {code: BSB, name: Brasileirão Série B, region: south_america, area_name: Brasil,
+     area_code: BR, data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+  - {code: ARG, name: Liga Profesional de Argentina, region: south_america, area_name: Argentina,
+     area_code: AR, data_status: unavailable,
+     data_note: "No incluida en el plan gratuito de football-data.org. API-Football podría cubrirla dentro de su cuota gratuita; adaptador no implementado."}
+  - {code: CLI, name: CONMEBOL Libertadores, region: south_america, area_name: Sudamérica,
+     kind: tournament, data_status: unavailable,
+     data_note: "Sin fuente gratuita integrada (football-data.org la ofrece en planes de pago)."}
+  - {code: CSA, name: CONMEBOL Sudamericana, region: south_america, area_name: Sudamérica,
+     kind: tournament, data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+  - {code: CAR, name: Copa Argentina, region: south_america, area_name: Argentina,
+     area_code: AR, kind: cup, data_status: unavailable,
+     data_note: "Sin fuente gratuita integrada."}
+  - {code: CDB, name: Copa do Brasil, region: south_america, area_name: Brasil, area_code: BR,
+     kind: cup, data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+
+  # --- Internacional ------------------------------------------------------------------------
+  - {code: WC, name: Copa Mundial de la FIFA, region: international, area_name: Mundo,
+     kind: tournament, data_status: available, data_source: football-data.org}
+  - {code: EC, name: Eurocopa, region: international, area_name: Europa, kind: tournament,
+     data_status: available, data_source: football-data.org}
+  - {code: WCQ, name: Eliminatorias mundialistas, region: international, area_name: Mundo,
+     kind: tournament, data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+  - {code: CA, name: Copa América, region: international, area_name: Sudamérica,
+     kind: tournament, data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+  - {code: UNL, name: UEFA Nations League, region: international, area_name: Europa,
+     kind: tournament, data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+  - {code: FRI, name: Amistosos internacionales, region: international, area_name: Mundo,
+     kind: tournament, data_status: unavailable, data_note: "Sin fuente gratuita integrada."}
+  - {code: WWC, name: Copa Mundial Femenina de la FIFA, region: international, area_name: Mundo,
+     kind: tournament, gender: women, data_status: unavailable,
+     data_note: "Sin fuente gratuita integrada."}
+
+broadcasters:
+  # Emisoras citadas por FIFA en su comunicado oficial sobre los países nórdicos (Mundial 2026).
+  - {slug: dr, name: DR, website_url: "https://www.dr.dk/", official_domains: [dr.dk], countries: [DK]}
+  - {slug: tv2-dk, name: TV 2 (Dinamarca), website_url: "https://tv2.dk/", official_domains: [tv2.dk], countries: [DK]}
+  - {slug: yle, name: Yle, website_url: "https://yle.fi/", official_domains: [yle.fi], countries: [FI]}
+  - {slug: mtv-fi, name: MTV (Finlandia), website_url: "https://www.mtv.fi/", official_domains: [mtv.fi], countries: [FI]}
+  - {slug: nrk, name: NRK, website_url: "https://www.nrk.no/", official_domains: [nrk.no], countries: ["NO"]}
+  - {slug: tv2-no, name: TV 2 (Noruega), website_url: "https://www.tv2.no/", official_domains: [tv2.no], countries: ["NO"]}
+  - {slug: svt, name: SVT, website_url: "https://www.svt.se/", official_domains: [svt.se], countries: [SE]}
+  - {slug: tv4, name: TV4, website_url: "https://www.tv4.se/", official_domains: [tv4.se], countries: [SE]}
+  # Proveedores con indicios pendientes de revisión.
+  - {slug: sky-sports-uk, name: Sky Sports, website_url: "https://www.skysports.com/", official_domains: [skysports.com, sky.com], countries: [GB]}
+  - {slug: tnt-sports-uk, name: TNT Sports, website_url: "https://www.tntsports.co.uk/", official_domains: [tntsports.co.uk], countries: [GB]}
+  - {slug: peacock, name: Peacock, website_url: "https://www.peacocktv.com/", official_domains: [peacocktv.com], countries: [US]}
+  - {slug: movistar-plus, name: Movistar Plus+, website_url: "https://www.movistarplus.es/", official_domains: [movistarplus.es], countries: [ES]}
+  - {slug: paramount-plus-us, name: Paramount+, website_url: "https://www.paramountplus.com/", official_domains: [paramountplus.com], countries: [US]}
+
+rights:
+  # --- Verificadas: comunicado oficial de FIFA (inside.fifa.com) ----------------------------
+  # El comunicado nombra a las emisoras por territorio, pero no detalla precio ni modalidad
+  # de acceso: por eso access_type es "unknown" (no se presupone que sea en abierto).
+  - &fifa_nordic
+    {broadcaster: dr, competition: WC, country: DK, season: "2026", valid_from: 2026-06-11,
+     valid_to: 2026-07-19, access_type: unknown, source_type: organizer_directory,
+     source_url: "https://inside.fifa.com/media-releases/fifa-world-cup-2026-media-rights-awarded-in-the-nordic-territories",
+     status: verified, verified_at: "2026-10-14T10:00:00+00:00",
+     verified_by: "catalogo-inicial (búsqueda web)",
+     territorial_notes: "Derechos adjudicados para el territorio indicado; consulta las condiciones del proveedor.",
+     review_note: "Comunicado de FIFA localizado por búsqueda. Comprobación HTTP pendiente."}
+  - {<<: *fifa_nordic, broadcaster: tv2-dk, country: DK}
+  - {<<: *fifa_nordic, broadcaster: yle, country: FI}
+  - {<<: *fifa_nordic, broadcaster: mtv-fi, country: FI}
+  - {<<: *fifa_nordic, broadcaster: nrk, country: "NO"}
+  - {<<: *fifa_nordic, broadcaster: tv2-no, country: "NO"}
+  - {<<: *fifa_nordic, broadcaster: svt, country: SE}
+  - {<<: *fifa_nordic, broadcaster: tv4, country: SE}
+
+  # --- Pendientes de revisión (NO se publican) ---------------------------------------------
+  - {broadcaster: sky-sports-uk, competition: PL, country: GB, season: 2026/27,
+     access_type: subscription, source_type: organizer_directory,
+     source_url: "https://www.premierleague.com/en/about/faq/broadcast", status: pending_review,
+     review_note: "El FAQ oficial cita Sky Sports y TNT Sports para 2025/26. Falta confirmar 2026/27 en la fuente oficial."}
+  - {broadcaster: tnt-sports-uk, competition: PL, country: GB, season: 2026/27,
+     access_type: subscription, source_type: organizer_directory,
+     source_url: "https://www.premierleague.com/en/about/faq/broadcast", status: pending_review,
+     review_note: "Igual que la entrada de Sky Sports."}
+  - {broadcaster: peacock, competition: PL, country: US, season: 2026/27,
+     access_type: subscription, source_type: other,
+     source_url: "https://www.tomsguide.com/entertainment/sports/atch-premier-league-2025-26-official-broadcasters",
+     status: pending_review,
+     review_note: "Fuente de terceros: dice que la tabla oficial atribuye EE. UU. a NBC Sports (2025/26-2027/28). Hay que comprobarlo en premierleague.com."}
+  - {broadcaster: tnt-sports-uk, competition: EL, country: GB, season: 2026/27,
+     access_type: subscription, source_type: organizer_directory,
+     source_url: "https://www.uefa.com/uefaeuropaleague/news/newsid=2398210.html",
+     status: pending_review,
+     review_note: "La guía de UEFA para 2025/26 lo cita, pero la competición no tiene fuente de datos integrada y falta confirmar 2026/27."}
+  - {broadcaster: movistar-plus, competition: EL, country: ES, season: 2026/27,
+     access_type: subscription, source_type: organizer_directory,
+     source_url: "https://www.uefa.com/uefaeuropaleague/news/newsid=2398210.html",
+     status: pending_review,
+     review_note: "La guía de UEFA para 2025/26 cita a Telefónica. Falta confirmar la marca comercial y la temporada 2026/27."}
+  - {broadcaster: paramount-plus-us, competition: EL, country: US, season: 2026/27,
+     access_type: subscription, source_type: organizer_directory,
+     source_url: "https://www.uefa.com/uefaeuropaleague/news/newsid=2398210.html",
+     status: pending_review,
+     review_note: "La guía de UEFA para 2025/26 lo cita junto a DAZN y TUDN. Falta confirmar 2026/27."}
+
+directories:
+  # Páginas de los organizadores que listan sus emisoras oficiales por territorio.
+  - {competition: CL, organizer: UEFA, url: "https://www.uefa.com/uefachampionsleague/news/newsid=2398198.html",
+     official_domains: [uefa.com], status: verified, verified_at: "2026-10-14T10:00:00+00:00",
+     verified_by: "catalogo-inicial (búsqueda web)",
+     review_note: "Guía oficial de UEFA con las emisoras por país. Comprobación HTTP pendiente."}
+  - {competition: EL, organizer: UEFA, url: "https://www.uefa.com/uefaeuropaleague/news/newsid=2398210.html",
+     official_domains: [uefa.com], status: verified, verified_at: "2026-10-14T10:00:00+00:00",
+     verified_by: "catalogo-inicial (búsqueda web)",
+     review_note: "Guía oficial de UEFA con las emisoras por país. Comprobación HTTP pendiente."}
+  - {competition: PL, organizer: Premier League, url: "https://www.premierleague.com/en/about/faq/broadcast",
+     official_domains: [premierleague.com], status: verified, verified_at: "2026-10-14T10:00:00+00:00",
+     verified_by: "catalogo-inicial (búsqueda web)",
+     review_note: "FAQ oficial que remite al listado completo de emisoras internacionales. Comprobación HTTP pendiente."}
+  - {competition: UECL, organizer: UEFA,
+     url: "https://www.uefa.com/uefaconferenceleague/news/0285-18f79eae3aac-5c7eb199a66d-1000--europa-conference-league-how-to-watch/",
+     official_domains: [uefa.com], status: pending_review,
+     review_note: "La URL usa el nombre antiguo de la competición; puede estar desactualizada."}

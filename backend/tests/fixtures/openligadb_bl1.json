@@ -1,0 +1,30 @@
+[
+  {"matchID": 70001, "matchDateTimeUTC": "2026-10-10T18:30:00Z", "leagueShortcut": "bl1",
+   "group": {"groupName": "7. Spieltag", "groupOrderID": 7},
+   "team1": {"teamId": 40, "teamName": "Muster SV", "shortName": "Muster", "teamIconUrl": "https://img.example/40.png"},
+   "team2": {"teamId": 41, "teamName": "Beispiel 04", "shortName": "Beispiel", "teamIconUrl": null},
+   "matchIsFinished": true,
+   "matchResults": [
+     {"resultTypeID": 1, "resultName": "Halbzeit", "pointsTeam1": 0, "pointsTeam2": 1},
+     {"resultTypeID": 2, "resultName": "Endergebnis", "pointsTeam1": 2, "pointsTeam2": 1}],
+   "goals": [
+     {"goalID": 1, "scoreTeam1": 0, "scoreTeam2": 1, "matchMinute": 12, "goalGetterName": "Spieler A", "isPenalty": false, "isOwnGoal": false},
+     {"goalID": 2, "scoreTeam1": 1, "scoreTeam2": 1, "matchMinute": 55, "goalGetterName": "Spieler B", "isPenalty": true, "isOwnGoal": false},
+     {"goalID": 3, "scoreTeam1": 2, "scoreTeam2": 1, "matchMinute": 80, "goalGetterName": "Spieler C", "isPenalty": false, "isOwnGoal": true}],
+   "location": {"locationCity": "Musterstadt", "locationStadium": "Musterarena"}},
+  {"matchID": 70002, "matchDateTimeUTC": "2026-10-14T18:30:00Z", "leagueShortcut": "bl1",
+   "group": {"groupName": "8. Spieltag", "groupOrderID": 8},
+   "team1": {"teamId": 41, "teamName": "Beispiel 04", "shortName": "Beispiel"},
+   "team2": {"teamId": 40, "teamName": "Muster SV", "shortName": "Muster"},
+   "matchIsFinished": false, "matchResults": [],
+   "goals": [{"goalID": 4, "scoreTeam1": 1, "scoreTeam2": 0, "matchMinute": 20, "goalGetterName": "Spieler D", "isPenalty": false, "isOwnGoal": false}],
+   "location": null},
+  {"matchID": 70003, "matchDateTimeUTC": "2026-10-20T13:30:00Z", "leagueShortcut": "bl1",
+   "group": {"groupName": "9. Spieltag", "groupOrderID": 9},
+   "team1": {"teamId": 40, "teamName": "Muster SV"}, "team2": {"teamId": 41, "teamName": "Beispiel 04"},
+   "matchIsFinished": false, "matchResults": [], "goals": [], "location": null},
+  {"matchID": 70004, "matchDateTimeUTC": "2026-10-01T13:30:00Z", "leagueShortcut": "bl1",
+   "group": {"groupName": "6. Spieltag", "groupOrderID": 6},
+   "team1": {"teamId": 40, "teamName": "Muster SV"}, "team2": {"teamId": 41, "teamName": "Beispiel 04"},
+   "matchIsFinished": false, "matchResults": [], "goals": [], "location": null}
+]

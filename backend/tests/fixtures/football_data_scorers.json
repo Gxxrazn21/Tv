@@ -1,0 +1,5 @@
+{"scorers": [
+  {"player": {"id": 501, "name": "Jugador Prueba", "nationality": "Spain", "section": "Offence"},
+   "team": {"id": 2, "name": "Atlético Muestra", "shortName": "Atlético", "tla": "ATM", "crest": null},
+   "goals": 7}
+]}

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openfoot-backend"
+version = "0.1.0"
+description = "Backend de OpenFoot: calendario de fútbol y catálogo verificado de transmisiones oficiales."
+readme = "../README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.140,<1",
+  "uvicorn>=0.50",
+  "sqlalchemy>=2.0,<3",
+  "alembic>=1.16",
+  "httpx>=0.28,<1",
+  "pydantic-settings>=2.10",
+  "rapidfuzz>=3.13",
+  "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2"]
+dev = ["pytest>=8", "ruff>=0.12", "pip-audit>=2.9"]
+
+[project.scripts]
+openfoot = "openfoot.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["openfoot*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]
+"alembic/versions/*" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["openfoot"]
+known-third-party = ["alembic"]

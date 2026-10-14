@@ -1,0 +1,26 @@
+{
+  "resultSet": {"count": 3},
+  "matches": [
+    {"id": 1001, "utcDate": "2026-10-14T19:00:00Z", "status": "IN_PLAY", "matchday": 8,
+     "stage": "REGULAR_SEASON", "group": null, "lastUpdated": "2026-10-14T19:30:00Z",
+     "competition": {"id": 2021, "name": "Premier League", "code": "PL"},
+     "season": {"id": 9999, "startDate": "2026-08-15", "endDate": "2027-05-23"},
+     "homeTeam": {"id": 1, "name": "Ejemplo Rovers FC", "shortName": "Rovers", "tla": "ROV", "crest": "https://crests.example/1.png"},
+     "awayTeam": {"id": 2, "name": "Atlético Muestra", "shortName": "Atlético", "tla": "ATM", "crest": "https://crests.example/2.png"},
+     "score": {"winner": null, "duration": "REGULAR", "fullTime": {"home": 1, "away": 0}, "halfTime": {"home": 1, "away": 0}}},
+    {"id": 1002, "utcDate": "2026-10-15T23:30:00Z", "status": "TIMED", "matchday": 8,
+     "stage": "REGULAR_SEASON", "group": null, "lastUpdated": "2026-10-13T08:00:00Z",
+     "competition": {"id": 2021, "name": "Premier League", "code": "PL"},
+     "season": {"id": 9999, "startDate": "2026-08-15", "endDate": "2027-05-23"},
+     "homeTeam": {"id": 3, "name": "Barcelona Demo", "shortName": "Barça Demo", "tla": "BAR", "crest": null},
+     "awayTeam": {"id": 1, "name": "Ejemplo Rovers FC", "shortName": "Rovers", "tla": "ROV", "crest": "https://crests.example/1.png"},
+     "score": {"winner": null, "duration": "REGULAR", "fullTime": {"home": null, "away": null}, "halfTime": {"home": null, "away": null}}},
+    {"id": 1003, "utcDate": "2026-10-12T14:00:00Z", "status": "FINISHED", "matchday": 7,
+     "stage": "REGULAR_SEASON", "group": null, "lastUpdated": "2026-10-12T16:00:00Z",
+     "competition": {"id": 2000, "name": "FIFA World Cup", "code": "WC"},
+     "season": {"id": 1, "startDate": "2026-06-11", "endDate": "2026-07-19"},
+     "homeTeam": {"id": null, "name": null, "shortName": null, "tla": null, "crest": null},
+     "awayTeam": {"id": 2, "name": "Atlético Muestra", "shortName": "Atlético", "tla": "ATM", "crest": null},
+     "score": {"winner": "AWAY_TEAM", "duration": "REGULAR", "fullTime": {"home": 0, "away": 2}, "halfTime": {"home": 0, "away": 1}}}
+  ]
+}
