@@ -11,6 +11,7 @@ Lista honesta del estado a **14 de octubre de 2026**.
 - App: `flutter analyze` sin avisos y 22 pruebas (unitarias, repositorio con SQLite real y widgets).
   Compilación completa del código Dart en modo release (dart2js) y **APK de release compilado en
   GitHub Actions** (artefacto `openfoot-apk`).
+- Imagen Docker del backend construida y arrancada en GitHub Actions.
 
 ## No probado o pendiente
 | Área | Situación | Qué falta |
@@ -29,4 +30,4 @@ Lista honesta del estado a **14 de octubre de 2026**.
 | **Límite de solicitudes** | En memoria, por proceso. | Con varias réplicas, aplicarlo en el proxy inverso. |
 | **Accesibilidad** | Etiquetas semánticas y textos junto a los colores. | Auditoría con TalkBack y prueba con tamaños de texto grandes. |
 | **Localización** | Solo español. | Inglés y portugués. |
-| **Docker** | `Dockerfile` y `docker-compose.yml` incluidos, pero **no construidos** en este entorno. | `docker compose up --build`. |
+| **Docker** | La imagen se construye y arranca en la CI (`/health` y `/v1/competitions` responden). `docker-compose.yml` con PostgreSQL no se ha levantado. | `docker compose up --build`. |
