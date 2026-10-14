@@ -135,14 +135,32 @@ class _HomeList extends StatelessWidget {
   }
 }
 
-class _FeaturedCompetitions extends StatelessWidget {
+class _FeaturedCompetitions extends StatefulWidget {
   const _FeaturedCompetitions();
 
   @override
-  Widget build(BuildContext context) {
+  State<_FeaturedCompetitions> createState() => _FeaturedCompetitionsState();
+}
+
+class _FeaturedCompetitionsState extends State<_FeaturedCompetitions> {
+  Repository? _repo;
+  Future<Loaded<List<Competition>>>? _future;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Se pide una sola vez por servidor, no en cada reconstrucción de la lista.
     final repo = context.watch<Repository>();
+    if (!identical(repo, _repo)) {
+      _repo = repo;
+      _future = repo.competitions();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<Loaded<List<Competition>>>(
-      future: repo.competitions(),
+      future: _future,
       builder: (context, snap) {
         final featured = snap.data?.data.where((c) => c.featured).toList() ?? const [];
         if (featured.isEmpty) return const SizedBox.shrink();

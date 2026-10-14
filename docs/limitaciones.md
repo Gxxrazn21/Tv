@@ -3,7 +3,7 @@
 Lista honesta del estado a **14 de octubre de 2026**.
 
 ## Probado
-- Backend: 102 pruebas automatizadas que pasan sobre **SQLite y PostgreSQL 16**. Además: `ruff`,
+- Backend: 103 pruebas automatizadas que pasan sobre **SQLite y PostgreSQL 16**. Además: `ruff`,
   `pip-audit` sin vulnerabilidades, migración de ida y vuelta y comprobación de que no hay desfase
   entre modelo y migraciones.
 - Backend real con `uvicorn`: `/health`, `/v1/sources` y `/v1/competitions` responden. La CLI

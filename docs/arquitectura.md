@@ -65,7 +65,7 @@ backend/
 │   └── cli.py               # openfoot init-db | load-catalog | sync | check-links | review
 ├── alembic/versions/        # Migraciones
 ├── data/catalog.yaml        # Catálogo inicial
-└── tests/                   # 102 pruebas
+└── tests/                   # 103 pruebas
 ```
 
 ### API pública (solo lectura)

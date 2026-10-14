@@ -245,3 +245,13 @@ def test_errors_do_not_leak_details(engine):
         r = c.get("/boom")
     assert r.status_code == 500
     assert "secreto" not in r.text
+
+
+def test_rate_limiter_prunes_stale_clients():
+    from openfoot.main import RateLimiter
+
+    rl = RateLimiter(5)
+    for i in range(50_001):
+        rl.allow(f"10.0.{i // 256}.{i % 256}", now=0.0)
+    rl.allow("nuevo", now=120.0)
+    assert len(rl._hits) == 1

@@ -33,7 +33,8 @@ class RateLimiter:
                 return False, int(60 - (now - q[0])) + 1
             q.append(now)
             if len(self._hits) > 50_000:  # evita crecimiento ilimitado de memoria
-                for k in [k for k, v in self._hits.items() if not v]:
+                stale = [k for k, v in self._hits.items() if not v or now - v[-1] >= 60]
+                for k in stale:
                     del self._hits[k]
             return True, 0
 

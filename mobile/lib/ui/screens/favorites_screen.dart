@@ -69,15 +69,32 @@ class FavoritesScreen extends StatelessWidget {
   }
 }
 
-class _UpcomingForTeams extends StatelessWidget {
+class _UpcomingForTeams extends StatefulWidget {
   const _UpcomingForTeams({required this.teamIds, required this.repo, required this.formatter});
 
   final List<int> teamIds;
   final Repository repo;
   final TimeFormatter formatter;
 
+  @override
+  State<_UpcomingForTeams> createState() => _UpcomingForTeamsState();
+}
+
+class _UpcomingForTeamsState extends State<_UpcomingForTeams> {
+  late Future<List<MatchSummary>> _future = _load();
+
+  @override
+  void didUpdateWidget(covariant _UpcomingForTeams old) {
+    super.didUpdateWidget(old);
+    // Solo se recarga si cambian los equipos o el servidor.
+    if (old.teamIds.join(',') != widget.teamIds.join(',') || !identical(old.repo, widget.repo)) {
+      _future = _load();
+    }
+  }
+
   Future<List<MatchSummary>> _load() async {
-    final results = await Future.wait(teamIds.map((id) => repo.teamMatches(id).then((r) => r.data).catchError((_) => <MatchSummary>[])));
+    final results = await Future.wait(widget.teamIds
+        .map((id) => widget.repo.teamMatches(id).then((r) => r.data).catchError((_) => <MatchSummary>[])));
     final byId = <int, MatchSummary>{for (final list in results) for (final m in list) m.id: m};
     return byId.values.toList()..sort((a, b) => a.utcDate.compareTo(b.utcDate));
   }
@@ -85,8 +102,7 @@ class _UpcomingForTeams extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<MatchSummary>>(
-      key: ValueKey(teamIds.join(',')),
-      future: _load(),
+      future: _future,
       builder: (context, snap) {
         if (!snap.hasData) return const LoadingView();
         final items = snap.data!.take(10).toList();
@@ -98,7 +114,8 @@ class _UpcomingForTeams extends StatelessWidget {
         }
         return Column(
           children: [
-            for (final m in items) MatchCard(match: m, formatter: formatter, showDate: true, onTap: () => openMatch(context, m)),
+            for (final m in items)
+              MatchCard(match: m, formatter: widget.formatter, showDate: true, onTap: () => openMatch(context, m)),
           ],
         );
       },

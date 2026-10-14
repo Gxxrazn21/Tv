@@ -235,13 +235,20 @@ class _TimezonePickerState extends State<_TimezonePicker> {
   }
 }
 
-class _SourcesTile extends StatelessWidget {
+class _SourcesTile extends StatefulWidget {
   const _SourcesTile();
+
+  @override
+  State<_SourcesTile> createState() => _SourcesTileState();
+}
+
+class _SourcesTileState extends State<_SourcesTile> {
+  late final Future<List<SourceStatus>> _future = context.read<Repository>().sources();
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<SourceStatus>>(
-      future: context.read<Repository>().sources(),
+      future: _future,
       builder: (context, snap) {
         final sources = snap.data ?? const [];
         return ListTile(
