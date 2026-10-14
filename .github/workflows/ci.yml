@@ -16,8 +16,8 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Instalar dependencias
@@ -36,14 +36,29 @@ jobs:
           openfoot load-catalog data/catalog.yaml
           openfoot review list
 
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Construir imagen del backend
+        run: docker build -t openfoot-api backend
+      - name: Arrancar y comprobar /health
+        run: |
+          docker run -d --name api -p 8000:8000 -e OPENFOOT_DATABASE_URL=sqlite:////tmp/openfoot.db openfoot-api
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8000/v1/competitions | python3 -c "import json,sys; d=json.load(sys.stdin); assert len(d) > 20, d; print(len(d), 'competiciones')"
+      - name: Logs del contenedor
+        if: always()
+        run: docker logs api || true
+
   mobile:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -62,7 +77,7 @@ jobs:
         run: >
           flutter build apk --release
           --dart-define=OPENFOOT_API_URL=${{ vars.OPENFOOT_API_URL || 'http://10.0.2.2:8000' }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: openfoot-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk

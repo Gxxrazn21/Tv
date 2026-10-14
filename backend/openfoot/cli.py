@@ -19,12 +19,21 @@ from openfoot.models import BroadcastRight, LinkCheck, OfficialDirectory
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def _alembic_root() -> Path:
+    """Directorio con alembic.ini: el de trabajo (instalación normal o Docker) o el del código."""
+    for candidate in (Path.cwd(), ROOT):
+        if (candidate / "alembic.ini").exists():
+            return candidate
+    raise SystemExit("No se encontró alembic.ini; ejecuta la orden desde el directorio backend/")
+
+
 def cmd_init_db(args) -> int:
     from alembic import command
     from alembic.config import Config
 
-    cfg = Config(str(ROOT / "alembic.ini"))
-    cfg.set_main_option("script_location", str(ROOT / "alembic"))
+    root = _alembic_root()
+    cfg = Config(str(root / "alembic.ini"))
+    cfg.set_main_option("script_location", str(root / "alembic"))
     command.upgrade(cfg, "head")
     print("Base de datos migrada a la última versión.")
     return 0

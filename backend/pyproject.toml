@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "openfoot-backend"
 version = "0.1.0"
 description = "Backend de OpenFoot: calendario de fútbol y catálogo verificado de transmisiones oficiales."
-readme = "../README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = [

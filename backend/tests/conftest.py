@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -28,13 +29,21 @@ def fixture(name: str):
 
 @pytest.fixture
 def engine():
+    """SQLite en memoria por defecto; PostgreSQL si se define OPENFOOT_TEST_DATABASE_URL."""
     from sqlalchemy import create_engine
 
-    eng = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
+    url = os.environ.get("OPENFOOT_TEST_DATABASE_URL")
+    if url:
+        eng = create_engine(url)
+        Base.metadata.drop_all(eng)
+    else:
+        eng = create_engine(
+            "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        )
     Base.metadata.create_all(eng)
     yield eng
+    if url:
+        Base.metadata.drop_all(eng)
     eng.dispose()
 
 

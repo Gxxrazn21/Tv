@@ -1,0 +1,14 @@
+OpenFoot
+Copyright 2026 Colaboradores de OpenFoot
+
+Este producto se distribuye bajo la Licencia Apache, versión 2.0 (ver LICENSE).
+
+La licencia cubre ÚNICAMENTE el código fuente y la documentación de este repositorio.
+No concede derechos sobre partidos, retransmisiones, señales audiovisuales, escudos, logotipos,
+marcas, nombres comerciales ni bases de datos de terceros, que pertenecen a sus titulares.
+
+Atribuciones de datos (cuando la fuente correspondiente está activada en el servidor):
+- "Football data provided by the Football-Data.org API" (https://www.football-data.org).
+- Datos de OpenLigaDB (https://www.openligadb.de), aportados por su comunidad.
+
+Las dependencias de terceros y sus licencias se enumeran en docs/licencias.md.

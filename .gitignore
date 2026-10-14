@@ -30,3 +30,7 @@ mobile/ios/Flutter/flutter_export_environment.sh
 .idea/
 .vscode/
 .DS_Store
+
+# Artefactos de empaquetado
+build/
+dist/

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from alembic import command
@@ -23,7 +24,8 @@ def test_single_head():
 
 
 def test_upgrade_creates_all_tables_and_downgrade(tmp_path):
-    url = f"sqlite:///{tmp_path / 'm.db'}"
+    # Con OPENFOOT_TEST_MIGRATIONS_URL se prueba sobre PostgreSQL (base vacía y desechable).
+    url = os.environ.get("OPENFOOT_TEST_MIGRATIONS_URL") or f"sqlite:///{tmp_path / 'm.db'}"
     cfg = _config(url)
     command.upgrade(cfg, "head")
     tables = set(inspect(create_engine(url)).get_table_names())
