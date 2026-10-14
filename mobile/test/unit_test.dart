@@ -8,6 +8,7 @@ import 'package:openfoot/data/models.dart';
 import 'package:openfoot/data/repository.dart';
 import 'package:openfoot/services/reminders.dart';
 import 'package:openfoot/state/settings_controller.dart';
+import 'package:openfoot/ui/screens/match_screen.dart' show shouldAutoOpenWatch;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
@@ -128,5 +129,15 @@ void main() {
       final m = MatchSummary.fromJson(matchJson(utc: '2020-01-01T00:00:00Z'));
       expect(await c.toggle(m, minutesBefore: 15), contains('demasiado pronto'));
     });
+  });
+
+  test('apertura automática de opciones de visionado', () {
+    final now = DateTime.utc(2026, 10, 14, 18, 40);
+    MatchSummary at(String phase, String status, String utc) =>
+        MatchSummary.fromJson(matchJson(phase: phase, status: status, utc: utc));
+    expect(shouldAutoOpenWatch(at('live', 'IN_PLAY', '2026-10-14T18:00:00Z'), now), isTrue);
+    expect(shouldAutoOpenWatch(at('upcoming', 'TIMED', '2026-10-14T19:00:00Z'), now), isTrue);
+    expect(shouldAutoOpenWatch(at('upcoming', 'TIMED', '2026-10-14T21:00:00Z'), now), isFalse);
+    expect(shouldAutoOpenWatch(at('finished', 'FINISHED', '2026-10-14T16:00:00Z'), now), isFalse);
   });
 }

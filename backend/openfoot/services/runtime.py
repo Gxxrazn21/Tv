@@ -20,7 +20,7 @@ from sqlalchemy import select, text
 from sqlalchemy.engine import Engine
 
 from openfoot.config import Settings
-from openfoot.models import SyncRun
+from openfoot.models import Competition, SyncRun
 
 log = logging.getLogger("openfoot.runtime")
 
@@ -114,12 +114,23 @@ def sync_if_stale(engine: Engine, settings: Settings, sources, now: datetime | N
                 )
                 if last is not None and last > limit:
                     return False
+                # Los metadatos (temporada, logos de competiciones) se piden solo si faltan:
+                # normalmente los actualiza la tarea diaria.
+                missing_meta = session.scalar(
+                    select(Competition.id)
+                    .where(
+                        Competition.data_status == "available",
+                        Competition.data_source.like("football-data%"),
+                        Competition.emblem_url.is_(None),
+                    )
+                    .limit(1)
+                )
                 sync_all(
                     session,
                     sources,
                     days_back=settings.sync_on_request_days_back,
                     days_ahead=settings.sync_on_request_days_ahead,
-                    include_meta=False,
+                    include_meta=missing_meta is not None,
                 )
         return True
     except Exception:  # noqa: BLE001 - nunca debe romper la respuesta al usuario

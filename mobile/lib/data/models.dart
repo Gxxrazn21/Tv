@@ -21,6 +21,7 @@ class CompetitionRef {
     required this.region,
     required this.areaName,
     this.areaCode,
+    this.emblemUrl,
   });
 
   final String code;
@@ -28,6 +29,7 @@ class CompetitionRef {
   final String region;
   final String areaName;
   final String? areaCode;
+  final String? emblemUrl;
 
   factory CompetitionRef.fromJson(Map<String, dynamic> j) => CompetitionRef(
         code: j['code'] as String,
@@ -35,6 +37,7 @@ class CompetitionRef {
         region: j['region'] as String,
         areaName: j['area_name'] as String,
         areaCode: j['area_code'] as String?,
+        emblemUrl: j['emblem_url'] as String?,
       );
 }
 
@@ -45,6 +48,7 @@ class Competition extends CompetitionRef {
     required super.region,
     required super.areaName,
     super.areaCode,
+    super.emblemUrl,
     required this.kind,
     required this.gender,
     required this.dataStatus,
@@ -70,6 +74,7 @@ class Competition extends CompetitionRef {
         region: j['region'] as String,
         areaName: j['area_name'] as String,
         areaCode: j['area_code'] as String?,
+        emblemUrl: j['emblem_url'] as String?,
         kind: j['kind'] as String? ?? 'league',
         gender: j['gender'] as String? ?? 'men',
         dataStatus: j['data_status'] as String? ?? 'unavailable',

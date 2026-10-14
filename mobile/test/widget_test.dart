@@ -24,26 +24,35 @@ Routes baseRoutes({List<Map<String, dynamic>>? options}) => {
 void main() {
   setUpAll(initTestEnv);
 
-  testWidgets('Inicio muestra secciones y estados claros', (tester) async {
+  testWidgets('Inicio: filtros por estado, directo y agrupación por competición', (tester) async {
     final app = await buildApp(baseRoutes());
     tallScreen(tester);
     await tester.pumpWidget(app.widget);
     await settle(tester);
 
+    expect(find.text('Todos (3)'), findsOneWidget);
     expect(find.text('En directo (1)'), findsOneWidget);
     expect(find.text('Próximos (1)'), findsOneWidget);
     expect(find.text('Finalizados (1)'), findsOneWidget);
-    expect(find.text('EN DIRECTO'), findsOneWidget);
-    expect(find.text('PRÓXIMO'), findsOneWidget);
-    expect(find.text('FINALIZADO'), findsOneWidget);
+    expect(find.text('En juego ahora (1)'), findsOneWidget);
+    expect(find.text('VIVO'), findsWidgets);
+    expect(find.text('FINAL'), findsOneWidget);
+    // Cabecera de competición con logo (o trofeo de respaldo).
+    expect(find.text('Premier League'), findsWidgets);
     expect(find.text('Competiciones destacadas'), findsOneWidget);
-    // Navegación inferior
     for (final label in ['Inicio', 'Partidos', 'Competiciones', 'Favoritos']) {
       expect(find.text(label), findsWidgets);
     }
-    // Tema oscuro por defecto
     final material = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(material.themeMode, ThemeMode.dark);
+
+    // Filtro "Finalizados": solo queda el partido terminado.
+    await tester.ensureVisible(find.text('Finalizados (1)'));
+    await settle(tester);
+    await tester.tap(find.text('Finalizados (1)'));
+    await settle(tester);
+    expect(find.text('FINAL'), findsOneWidget);
+    expect(find.text('En juego ahora (1)'), findsNothing);
   });
 
   testWidgets('Las tarjetas tienen etiqueta accesible', (tester) async {
@@ -51,16 +60,16 @@ void main() {
     tallScreen(tester);
     await tester.pumpWidget(app.widget);
     await settle(tester);
-    expect(find.bySemanticsLabel(RegExp('Ejemplo Rovers contra Atlético Muestra, en directo, 1 a 0')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Ejemplo Rovers contra Atlético Muestra, en directo, 1 a 0')), findsWidgets);
   });
 
   testWidgets('Secciones de inicio personalizables', (tester) async {
-    final app = await buildApp(baseRoutes(), prefs: {'home_finished': false});
+    final app = await buildApp(baseRoutes(), prefs: {'home_live': false});
     tallScreen(tester);
     await tester.pumpWidget(app.widget);
     await settle(tester);
-    expect(find.text('Finalizados (1)'), findsNothing);
-    expect(find.text('En directo (1)'), findsOneWidget);
+    expect(find.text('En juego ahora (1)'), findsNothing);
+    expect(find.text('En directo (1)'), findsOneWidget); // el filtro sigue disponible
   });
 
   testWidgets('Ficha sin país pide elegirlo', (tester) async {
@@ -71,7 +80,7 @@ void main() {
     await tester.tap(find.text('Ejemplo Rovers').first);
     await settle(tester);
     expect(find.text('Goleador Prueba'), findsOneWidget);
-    expect(find.textContaining('Elige tu país'), findsOneWidget);
+    expect(find.text('Elige tu país para ver dónde se emite'), findsOneWidget);
   });
 
   testWidgets('Sin fuente verificada muestra el mensaje y el directorio oficial', (tester) async {
@@ -83,9 +92,10 @@ void main() {
     await settle(tester);
     expect(find.text('No se encontró una transmisión oficial verificada para esta región'), findsOneWidget);
     expect(find.textContaining('Directorio oficial de emisoras (Premier League)'), findsOneWidget);
+    expect(find.byType(WatchOptionCard), findsNothing);
   });
 
-  testWidgets('Distingue proveedores gratuitos y de pago', (tester) async {
+  testWidgets('En directo: se abren solas las opciones gratuitas y las de pago van ocultas', (tester) async {
     final app = await buildApp(
       baseRoutes(options: [optionJson('Abierta', 'free'), optionJson('Premium', 'subscription'), optionJson('Evento', 'ppv')]),
       prefs: {'country': 'ES'},
@@ -95,11 +105,39 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('Ejemplo Rovers').first);
     await settle(tester);
+
+    // Partido en directo: la hoja de opciones aparece sola, solo con la opción gratuita.
+    expect(find.byType(WatchOptionCard), findsOneWidget);
+    expect(find.text('Abrir Abierta'), findsOneWidget);
+    expect(find.text('Ver aquí'), findsOneWidget);
     expect(find.widgetWithText(AccessBadge, 'Gratis'), findsOneWidget);
+
+    // Cerrar la hoja y mostrar las de pago.
+    await tester.tapAt(const Offset(10, 10));
+    await settle(tester);
+    expect(find.text('Ver ahora en Abierta'), findsOneWidget);
+    await tester.tap(find.text('Hay 2 opciones de pago ocultas · Mostrar'));
+    await settle(tester);
+    await tester.tap(find.text('Ver ahora · 3 opciones'));
+    await settle(tester);
+    expect(find.byType(WatchOptionCard), findsNWidgets(3));
     expect(find.widgetWithText(AccessBadge, 'Suscripción'), findsOneWidget);
     expect(find.widgetWithText(AccessBadge, 'Pago por evento'), findsOneWidget);
-    expect(find.text('Abrir Abierta'), findsOneWidget);
-    expect(find.text('No se encontró una transmisión oficial verificada para esta región'), findsNothing);
+  });
+
+  testWidgets('Con «solo gratis» desactivado se ofrecen todas', (tester) async {
+    final app = await buildApp(
+      baseRoutes(options: [optionJson('Premium', 'subscription')]),
+      prefs: {'country': 'ES', 'only_free': false},
+    );
+    tallScreen(tester);
+    await tester.pumpWidget(app.widget);
+    await settle(tester);
+    await tester.tap(find.text('Ejemplo Rovers').first);
+    await settle(tester);
+    await tester.tapAt(const Offset(10, 10)); // cierra la hoja abierta automáticamente
+    await settle(tester);
+    expect(find.text('Ver ahora en Premium'), findsOneWidget);
   });
 
   testWidgets('Favoritos locales desde la ficha', (tester) async {

@@ -18,16 +18,17 @@ import '../widgets/team_badge.dart';
 
 const kReportUrl = 'https://github.com/gxxrazn21/tv/issues/new';
 
-/// Abre una URL https en una aplicación externa (navegador o app del proveedor).
-/// OpenFoot nunca reproduce la señal dentro de la app.
-Future<void> openExternal(BuildContext context, String url) async {
+/// Abre una URL https fuera de OpenFoot. Con [inApp] usa el navegador integrado del sistema
+/// (Custom Tabs en Android); si no, la app oficial del proveedor o el navegador.
+/// OpenFoot nunca reproduce ni redistribuye la señal por su cuenta.
+Future<void> openExternal(BuildContext context, String url, {bool inApp = false}) async {
   final uri = Uri.tryParse(url);
   final messenger = ScaffoldMessenger.of(context);
   if (uri == null || uri.scheme != 'https') {
     messenger.showSnackBar(const SnackBar(content: Text('Enlace no válido')));
     return;
   }
-  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  final ok = await launchUrl(uri, mode: inApp ? LaunchMode.inAppBrowserView : LaunchMode.externalApplication);
   if (!ok) messenger.showSnackBar(const SnackBar(content: Text('No se pudo abrir el enlace')));
 }
 
@@ -54,11 +55,11 @@ class MatchScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 32),
             children: [
-              _Header(match: m, formatter: fmt),
+              _Hero(match: m, formatter: fmt),
+              WatchSection(match: m),
+              const SizedBox(height: 8),
               _Info(match: m, formatter: fmt),
               if (m.events.isNotEmpty) _Events(match: m),
-              const Divider(height: 32),
-              WatchSection(match: m),
             ],
           ),
         ),
@@ -67,8 +68,8 @@ class MatchScreen extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.match, required this.formatter});
+class _Hero extends StatelessWidget {
+  const _Hero({required this.match, required this.formatter});
 
   final MatchSummary match;
   final TimeFormatter formatter;
@@ -76,19 +77,21 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     final m = match;
     final favs = context.watch<FavoritesController>();
+
     Widget team(Team t) {
       final fav = favs.isFavorite('team', '${t.id}');
       return Expanded(
         child: Column(
           children: [
-            TeamBadge(t, size: 56),
-            const SizedBox(height: 8),
-            Text(t.name, textAlign: TextAlign.center, style: text.titleSmall),
+            TeamBadge(t, size: 72),
+            const SizedBox(height: 10),
+            Text(t.name, textAlign: TextAlign.center, maxLines: 2, style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
             IconButton(
               tooltip: fav ? 'Quitar ${t.name} de favoritos' : 'Añadir ${t.name} a favoritos',
-              icon: Icon(fav ? Icons.star : Icons.star_outline),
+              icon: Icon(fav ? Icons.star : Icons.star_outline, color: fav ? Colors.amber : null),
               onPressed: () => favs.toggle(Favorite(kind: 'team', id: '${t.id}', label: t.name)),
             ),
           ],
@@ -96,25 +99,58 @@ class _Header extends StatelessWidget {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [scheme.primaryContainer.withValues(alpha: 0.55), scheme.surfaceContainerHigh],
+        ),
+      ),
       child: Column(
         children: [
-          StatusChip(m.phase),
-          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CompetitionLogo(url: m.competition.emblemUrl, name: m.competition.name, size: 20),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  m.competition.name + (m.matchday != null ? ' · Jornada ${m.matchday}' : ''),
+                  style: text.labelLarge?.copyWith(color: scheme.onSurfaceVariant),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               team(m.home),
               Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Semantics(
-                  label: m.hasScore ? 'Resultado ${m.homeScore} a ${m.awayScore}' : 'Hora ${formatter.time(m.utcDate)}',
-                  excludeSemantics: true,
-                  child: Text(
-                    m.hasScore ? '${m.homeScore} - ${m.awayScore}' : formatter.time(m.utcDate),
-                    style: text.displaySmall?.copyWith(fontWeight: FontWeight.w800),
-                  ),
+                padding: const EdgeInsets.only(top: 14),
+                child: Column(
+                  children: [
+                    Semantics(
+                      label: m.hasScore ? 'Resultado ${m.homeScore} a ${m.awayScore}' : 'Hora ${formatter.time(m.utcDate)}',
+                      excludeSemantics: true,
+                      child: Text(
+                        m.hasScore ? '${m.homeScore} - ${m.awayScore}' : formatter.time(m.utcDate),
+                        style: text.displaySmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: m.phase == MatchPhase.live ? AppTheme.live : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    StatusChip(m.phase),
+                    const SizedBox(height: 6),
+                    Text(formatter.date(m.utcDate), style: text.labelSmall),
+                  ],
                 ),
               ),
               team(m.away),
@@ -139,20 +175,15 @@ class _Info extends StatelessWidget {
     final settings = context.read<SettingsController>();
     return Column(
       children: [
+        const SectionHeader('Información'),
         ListTile(
           leading: const Icon(Icons.schedule),
           title: Text(formatter.full(m.utcDate)),
           subtitle: Text('Zona horaria: ${formatter.location.name}'
               '${m.wasRescheduled ? '\nHorario anterior: ${formatter.full(m.previousUtcDate!)}' : ''}'),
         ),
-        ListTile(
-          leading: const Icon(Icons.emoji_events_outlined),
-          title: Text(m.competition.name),
-          subtitle: Text([
-            if (m.matchday != null) 'Jornada ${m.matchday}',
-            if (m.stage != null && m.stage != 'REGULAR_SEASON') m.stage!,
-          ].join(' · ').ifEmpty(m.competition.areaName)),
-        ),
+        if (m.stage != null && m.stage != 'REGULAR_SEASON')
+          ListTile(leading: const Icon(Icons.flag_outlined), title: Text(_stageLabel(m.stage!))),
         if (m.venue != null) ListTile(leading: const Icon(Icons.stadium_outlined), title: Text(m.venue!)),
         if (m.phase == MatchPhase.upcoming)
           SwitchListTile(
@@ -167,7 +198,7 @@ class _Info extends StatelessWidget {
             },
           ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Text(
             'Datos: ${m.source} · actualizado ${formatter.full(m.fetchedAt)}',
             style: Theme.of(context).textTheme.bodySmall,
@@ -178,9 +209,16 @@ class _Info extends StatelessWidget {
   }
 }
 
-extension on String {
-  String ifEmpty(String other) => isEmpty ? other : this;
-}
+String _stageLabel(String raw) => switch (raw) {
+      'LEAGUE_STAGE' => 'Fase de liga',
+      'GROUP_STAGE' => 'Fase de grupos',
+      'LAST_16' => 'Octavos de final',
+      'QUARTER_FINALS' => 'Cuartos de final',
+      'SEMI_FINALS' => 'Semifinales',
+      'FINAL' => 'Final',
+      'PLAYOFFS' => 'Eliminatoria previa',
+      _ => raw.replaceAll('_', ' ').toLowerCase(),
+    };
 
 class _Events extends StatelessWidget {
   const _Events({required this.match});
@@ -240,17 +278,28 @@ class AccessBadge extends StatelessWidget {
   }
 }
 
-/// "Dónde ver": solo proveedores verificados para el país elegido.
+/// ¿Conviene abrir las opciones de visionado automáticamente al entrar?
+/// Sí si el partido está en directo o empieza en menos de 30 minutos.
+bool shouldAutoOpenWatch(MatchSummary m, DateTime nowUtc) {
+  if (m.phase == MatchPhase.live) return true;
+  if (m.phase != MatchPhase.upcoming) return false;
+  final diff = m.utcDate.difference(nowUtc);
+  return diff <= const Duration(minutes: 30) && diff >= const Duration(minutes: -5);
+}
+
+/// "Dónde ver": botón principal de reproducción y opciones verificadas para el país elegido.
 class WatchSection extends StatelessWidget {
-  const WatchSection({super.key, required this.match});
+  const WatchSection({super.key, required this.match, this.now});
 
   final MatchSummary match;
 
-  Future<void> _pickCountry(BuildContext context) async {
+  /// Para pruebas: instante actual en UTC.
+  final DateTime? now;
+
+  static Future<void> pickCountry(BuildContext context) async {
     final settings = context.read<SettingsController>();
     final picked = await showModalBottomSheet<String>(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,
@@ -275,7 +324,6 @@ class WatchSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsController>();
     final repo = context.watch<Repository>();
-    final fmt = TimeFormatter(settings.timezone);
     final country = settings.country;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,39 +331,62 @@ class WatchSection extends StatelessWidget {
         SectionHeader(
           'Dónde ver',
           trailing: TextButton.icon(
-            onPressed: () => _pickCountry(context),
+            onPressed: () => pickCountry(context),
             icon: Text(country != null ? flagEmoji(country) : '🌐'),
             label: Text(country != null ? countryName(country) : 'Elegir país'),
           ),
         ),
         if (country == null)
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Elige tu país para ver los proveedores oficiales verificados en tu región.'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.public),
+              title: const Text('Elige tu país para ver dónde se emite'),
+              subtitle: const Text('Solo mostramos proveedores oficiales verificados en tu región.'),
+              onTap: () => pickCountry(context),
+            ),
           )
         else
-          _WatchContent(
+          _WatchPanel(
             key: ValueKey('$country-${match.id}-${repo.api.baseUrl}'),
+            match: match,
             load: () => repo.watch(match.id, country),
-            formatter: fmt,
+            onlyFree: settings.onlyFree,
+            now: now,
           ),
       ],
     );
   }
 }
 
-class _WatchContent extends StatefulWidget {
-  const _WatchContent({super.key, required this.load, required this.formatter});
+class _WatchPanel extends StatefulWidget {
+  const _WatchPanel({super.key, required this.match, required this.load, required this.onlyFree, this.now});
 
+  final MatchSummary match;
   final Future<Loaded<WatchInfo>> Function() load;
-  final TimeFormatter formatter;
+  final bool onlyFree;
+  final DateTime? now;
 
   @override
-  State<_WatchContent> createState() => _WatchContentState();
+  State<_WatchPanel> createState() => _WatchPanelState();
 }
 
-class _WatchContentState extends State<_WatchContent> {
+class _WatchPanelState extends State<_WatchPanel> {
   late Future<Loaded<WatchInfo>> _future = widget.load();
+  bool _showPaid = false;
+  bool _autoOpened = false;
+
+  List<WatchOption> _visible(WatchInfo info) =>
+      widget.onlyFree && !_showPaid ? info.options.where((o) => o.accessType == AccessType.free).toList() : info.options;
+
+  void _maybeAutoOpen(WatchInfo info) {
+    if (_autoOpened) return;
+    _autoOpened = true;
+    final options = _visible(info);
+    if (options.isEmpty || !shouldAutoOpenWatch(widget.match, widget.now ?? DateTime.now().toUtc())) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showWatchOptions(context, widget.match, options);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -327,19 +398,44 @@ class _WatchContentState extends State<_WatchContent> {
           return ErrorView(error: snap.error!, onRetry: () => setState(() => _future = widget.load()));
         }
         final info = snap.data!.data;
-        final fmt = widget.formatter;
+        _maybeAutoOpen(info);
+        final options = _visible(info);
+        final hiddenPaid = info.options.length - options.length;
         final text = Theme.of(context).textTheme;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (snap.data!.fromCache) CacheBanner(cachedAt: snap.data!.cachedAt!, formatter: fmt),
-            for (final o in info.options) _OptionCard(option: o, formatter: fmt),
-            if (info.message != null)
+            if (options.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+                  onPressed: () => showWatchOptions(context, widget.match, options),
+                  icon: const Icon(Icons.play_circle_fill, size: 28),
+                  label: Text(options.length == 1
+                      ? 'Ver ahora en ${options.first.broadcasterName}'
+                      : 'Ver ahora · ${options.length} opciones'),
+                ),
+              ),
+            if (options.isEmpty)
               Card(
                 child: ListTile(
-                  leading: const Icon(Icons.search_off),
-                  title: Text(info.message!),
+                  leading: const Icon(Icons.tv_off_outlined),
+                  title: Text(hiddenPaid > 0
+                      ? 'No hay opciones gratuitas verificadas para esta región'
+                      : (info.message ?? 'No se encontró una transmisión oficial verificada para esta región')),
                   subtitle: const Text('No mostramos enlaces que no hayamos podido verificar.'),
+                ),
+              ),
+            if (hiddenPaid > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: TextButton.icon(
+                  onPressed: () => setState(() => _showPaid = true),
+                  icon: const Icon(Icons.lock_outline),
+                  label: Text(hiddenPaid == 1
+                      ? 'Hay 1 opción de pago oculta · Mostrar'
+                      : 'Hay $hiddenPaid opciones de pago ocultas · Mostrar'),
                 ),
               ),
             if (info.directory != null)
@@ -347,10 +443,14 @@ class _WatchContentState extends State<_WatchContent> {
                 child: ListTile(
                   leading: const Icon(Icons.list_alt),
                   title: Text('Directorio oficial de emisoras (${info.directory!.organizer})'),
-                  subtitle: Text('Verificado el ${fmt.date(info.directory!.verifiedAt)}'),
                   trailing: const Icon(Icons.open_in_new),
                   onTap: () => openExternal(context, info.directory!.url),
                 ),
+              ),
+            if (snap.data!.fromCache)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+                child: Text('Sin conexión: datos de visionado guardados anteriormente.'),
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -371,49 +471,93 @@ class _WatchContentState extends State<_WatchContent> {
   }
 }
 
-class _OptionCard extends StatelessWidget {
-  const _OptionCard({required this.option, required this.formatter});
+/// Hoja con las opciones de visionado: abrir la app oficial o verlo en el navegador integrado.
+Future<void> showWatchOptions(BuildContext context, MatchSummary match, List<WatchOption> options) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) => SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.8),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                '${match.home.displayName} - ${match.away.displayName}',
+                style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text('Elige cómo verlo. La reproducción la ofrece cada proveedor oficial.'),
+            ),
+            for (final o in options) WatchOptionCard(option: o),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class WatchOptionCard extends StatelessWidget {
+  const WatchOptionCard({super.key, required this.option});
 
   final WatchOption option;
-  final TimeFormatter formatter;
 
   @override
   Widget build(BuildContext context) {
     final o = option;
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Expanded(child: Text(o.broadcasterName, style: text.titleMedium)),
+                CircleAvatar(
+                  backgroundColor: scheme.primaryContainer,
+                  child: Text(o.broadcasterName.characters.first, style: TextStyle(color: scheme.onPrimaryContainer)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(o.broadcasterName, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
                 AccessBadge(o.accessType),
               ],
             ),
-            if (o.priceNote != null) Text(o.priceNote!, style: text.bodyMedium),
-            if (o.coverageNote != null) Text(o.coverageNote!, style: text.bodySmall),
+            if (o.coverageNote != null) ...[const SizedBox(height: 6), Text(o.coverageNote!, style: text.bodyMedium)],
+            if (o.priceNote != null) Text(o.priceNote!, style: text.bodySmall),
             if (o.territorialNotes != null) Text(o.territorialNotes!, style: text.bodySmall),
             const SizedBox(height: 6),
             Text(
-              'Verificado el ${formatter.date(o.verifiedAt)} · fuente: ${Uri.tryParse(o.sourceUrl)?.host ?? o.sourceUrl}'
-              '${o.lastCheck != null ? ' · enlace comprobado el ${formatter.date(o.lastCheck!.checkedAt)}' : ''}',
-              style: text.labelSmall,
+              'Verificado el ${o.verifiedAt.toLocal().day}/${o.verifiedAt.toLocal().month}/${o.verifiedAt.toLocal().year}'
+              ' · fuente: ${Uri.tryParse(o.sourceUrl)?.host ?? o.sourceUrl}',
+              style: text.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
+            const SizedBox(height: 10),
+            Row(
               children: [
-                FilledButton.icon(
-                  onPressed: () => openExternal(context, o.watchUrl),
-                  icon: const Icon(Icons.open_in_new),
-                  label: Text('Abrir ${o.broadcasterName}'),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => openExternal(context, o.watchUrl),
+                    icon: const Icon(Icons.play_arrow),
+                    label: Text('Abrir ${o.broadcasterName}', overflow: TextOverflow.ellipsis),
+                  ),
                 ),
-                TextButton(onPressed: () => openExternal(context, o.sourceUrl), child: const Text('Ver fuente')),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
+                  onPressed: () => openExternal(context, o.watchUrl, inApp: true),
+                  icon: const Icon(Icons.open_in_browser),
+                  label: const Text('Ver aquí'),
+                ),
               ],
             ),
+            TextButton(onPressed: () => openExternal(context, o.sourceUrl), child: const Text('Ver fuente')),
           ],
         ),
       ),

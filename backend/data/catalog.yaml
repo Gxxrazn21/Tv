@@ -96,6 +96,7 @@ broadcasters:
   - {slug: tnt-sports-uk, name: TNT Sports, website_url: "https://www.tntsports.co.uk/", official_domains: [tntsports.co.uk], countries: [GB]}
   - {slug: peacock, name: Peacock, website_url: "https://www.peacocktv.com/", official_domains: [peacocktv.com], countries: [US]}
   - {slug: movistar-plus, name: Movistar Plus+, website_url: "https://www.movistarplus.es/", official_domains: [movistarplus.es], countries: [ES]}
+  - {slug: disney-plus-latam, name: "Disney+ (ESPN)", website_url: "https://www.disneyplus.com/", official_domains: [disneyplus.com], countries: [CO, EC, VE]}
   - {slug: paramount-plus-us, name: Paramount+, website_url: "https://www.paramountplus.com/", official_domains: [paramountplus.com], countries: [US]}
 
 rights:
@@ -147,6 +148,14 @@ rights:
      source_url: "https://www.uefa.com/uefaeuropaleague/news/newsid=2398210.html",
      status: pending_review,
      review_note: "La guía de UEFA para 2025/26 lo cita junto a DAZN y TUDN. Falta confirmar 2026/27."}
+
+  - {broadcaster: disney-plus-latam, competition: CL, country: CO, season: 2026/27,
+     access_type: subscription, source_type: other,
+     source_url: "https://www.elpais.com.co/deportes/asi-se-podra-ver-el-debut-de-los-colombianos-en-la-champions-2026-2027-habra-duelo-de-cafeteros-en-el-estreno-del-torneo-0741.html",
+     status: verified, verified_at: "2026-10-14T15:00:00+00:00",
+     verified_by: "propietario del proyecto (fuentes de prensa)",
+     coverage_note: "Partidos de la fase de liga en canales ESPN y en Disney+ (plan con ESPN).",
+     review_note: "Aprobado por el propietario a partir de prensa colombiana (El País, Vanguardia) y LiveSoccerTV, que citan ESPN y Disney+ para 2026/27 (ciclo 2024-2027). No se encontró confirmación en uefa.com."}
 
 directories:
   # Páginas de los organizadores que listan sus emisoras oficiales por territorio.

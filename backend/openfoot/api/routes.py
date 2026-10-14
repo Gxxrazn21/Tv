@@ -90,16 +90,21 @@ def team_out(team, settings: Settings) -> s.TeamOut:
     )
 
 
-def comp_ref(c: Competition) -> s.CompetitionRef:
+def comp_ref(c: Competition, settings: Settings) -> s.CompetitionRef:
     return s.CompetitionRef(
-        code=c.code, name=c.name, region=c.region, area_name=c.area_name, area_code=c.area_code
+        code=c.code,
+        name=c.name,
+        region=c.region,
+        area_name=c.area_name,
+        area_code=c.area_code,
+        emblem_url=c.emblem_url if settings.serve_crest_urls else None,
     )
 
 
 def match_out(m: Match, settings: Settings) -> s.MatchOut:
     return s.MatchOut(
         id=m.id,
-        competition=comp_ref(m.competition),
+        competition=comp_ref(m.competition, settings),
         utc_date=m.utc_date,
         previous_utc_date=m.previous_utc_date,
         status=m.status,
@@ -145,14 +150,13 @@ def list_competitions(
     )
     return [
         s.CompetitionOut(
-            **comp_ref(c).model_dump(),
+            **comp_ref(c, settings).model_dump(),
             kind=c.kind,
             gender=c.gender,
             data_status=c.data_status,
             data_source=c.data_source,
             data_note=c.data_note,
             featured=c.featured,
-            emblem_url=c.emblem_url if settings.serve_crest_urls else None,
             has_official_directory=c.id in with_dir,
         )
         for c in session.scalars(q)

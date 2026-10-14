@@ -12,11 +12,21 @@ String phaseLabel(MatchPhase p) => switch (p) {
       MatchPhase.unknown => 'SIN CONFIRMAR',
     };
 
+String _short(MatchPhase p) => switch (p) {
+      MatchPhase.live => 'VIVO',
+      MatchPhase.upcoming => 'PRÓX.',
+      MatchPhase.finished => 'FINAL',
+      MatchPhase.postponed => 'APLAZ.',
+      MatchPhase.cancelled => 'CANC.',
+      MatchPhase.unknown => '¿?',
+    };
+
 /// Indicador de estado: el texto siempre acompaña al color (accesible sin percepción del color).
 class StatusChip extends StatelessWidget {
-  const StatusChip(this.phase, {super.key});
+  const StatusChip(this.phase, {super.key, this.compact = false});
 
   final MatchPhase phase;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -28,17 +38,17 @@ class StatusChip extends StatelessWidget {
       _ => (scheme.errorContainer, scheme.onErrorContainer),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: compact ? 2 : 3),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (phase == MatchPhase.live) ...[
+          if (phase == MatchPhase.live && !compact) ...[
             const Icon(Icons.circle, size: 8, color: Colors.white),
             const SizedBox(width: 4),
           ],
           Text(
-            phaseLabel(phase),
+            compact ? _short(phase) : phaseLabel(phase),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg, fontWeight: FontWeight.w700, letterSpacing: 0.4),
           ),
         ],

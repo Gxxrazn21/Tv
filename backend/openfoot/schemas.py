@@ -33,6 +33,7 @@ class CompetitionRef(BaseModel):
     region: str
     area_name: str
     area_code: str | None
+    emblem_url: str | None = None
 
 
 class CompetitionOut(CompetitionRef):
@@ -42,7 +43,6 @@ class CompetitionOut(CompetitionRef):
     data_source: str | None
     data_note: str | None
     featured: bool
-    emblem_url: str | None
     has_official_directory: bool
 
 

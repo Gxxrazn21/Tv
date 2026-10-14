@@ -93,3 +93,19 @@ fuentes y atribuciones · código fuente · licencias de terceros.
   encabezados están marcados como `header` y todos los botones de icono tienen *tooltip*.
 - Los estados no dependen solo del color. El diseño se adapta con `Expanded` y `Flexible`, y las
   listas se desplazan.
+
+## Actualización (14/10/2026)
+- **Inicio:** carrusel de competiciones destacadas con logo, filtros «Todos / En directo /
+  Próximos / Finalizados» con contador, sección «En juego ahora» y partidos agrupados por
+  competición (cabecera con logo).
+- **Tarjeta de partido:** columna de hora o estado y dos filas con escudo, nombre y marcador; el
+  ganador se resalta y el marcador en directo va en rojo.
+- **Ficha:** cabecera con degradado, escudos grandes y logo de la competición; «Dónde ver» va
+  justo debajo, con un botón principal **▶ Ver ahora**. Si el partido está en directo o empieza
+  en menos de 30 minutos, las opciones se abren solas.
+- **Opciones de visionado:** «Abrir {proveedor}» (app o web oficial) y «Ver aquí» (navegador
+  integrado del sistema). OpenFoot no reproduce señales por su cuenta.
+- **Solo gratis:** activado por defecto; las opciones de pago se ocultan y se pueden mostrar con
+  un toque en cada partido.
+- **Escudos y logos:** PNG o SVG desde la fuente de datos si el servidor los sirve; si no, un
+  monograma propio.

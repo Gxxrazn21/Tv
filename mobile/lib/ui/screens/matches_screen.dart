@@ -145,15 +145,20 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 }
                 final byComp = <String, List<MatchSummary>>{};
                 for (final m in matches) {
-                  byComp.putIfAbsent(m.competition.name, () => []).add(m);
+                  byComp.putIfAbsent(m.competition.code, () => []).add(m);
                 }
                 return RefreshIndicator(
                   onRefresh: refresh,
                   child: ListView(
                     children: [
                       for (final e in byComp.entries) ...[
-                        SectionHeader(e.key),
-                        for (final m in e.value) MatchCard(match: m, formatter: fmt, onTap: () => openMatch(context, m)),
+                        CompetitionHeader(
+                          competition: e.value.first.competition,
+                          count: e.value.length,
+                          onTap: () => openCompetition(context, e.value.first.competition.code, e.value.first.competition.name),
+                        ),
+                        for (final m in e.value)
+                          MatchCard(match: m, formatter: fmt, showCompetition: false, onTap: () => openMatch(context, m)),
                       ],
                       const SizedBox(height: 24),
                     ],

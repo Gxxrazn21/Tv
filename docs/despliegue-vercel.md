@@ -52,6 +52,7 @@ En **Settings → Environment Variables** añade:
 | `OPENFOOT_SYNC_ON_REQUEST` | `true` |
 | `OPENFOOT_TRUST_FORWARDED_FOR` | `true` |
 | `CRON_SECRET` | una frase larga y aleatoria (por ejemplo, de un gestor de contraseñas) |
+| `OPENFOOT_SERVE_CREST_URLS` | `true` para mostrar escudos y logos (opcional; son marcas registradas de clubes y competiciones, decisión del operador) |
 
 `CRON_SECRET` protege la tarea diaria: Vercel lo envía solo y nadie más puede lanzarla.
 

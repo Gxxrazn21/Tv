@@ -44,6 +44,7 @@ dependencies:
   flutter_timezone: ^5.1.1
   intl: ^0.20.3
   provider: ^6.1.5+1
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:

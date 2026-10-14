@@ -10,6 +10,7 @@ import '../../state/settings_controller.dart';
 import '../widgets/loader.dart';
 import '../widgets/nav.dart';
 import '../widgets/state_views.dart';
+import '../widgets/team_badge.dart';
 
 const regionNames = {'europe': 'Europa', 'south_america': 'Sudamérica', 'international': 'Internacional'};
 
@@ -56,8 +57,9 @@ class CompetitionTile extends StatelessWidget {
     return ListTile(
       title: Text(c.name),
       subtitle: Text(c.hasData ? c.areaName : '${c.areaName} · Sin datos disponibles'),
-      leading: Icon(c.hasData ? Icons.emoji_events : Icons.info_outline,
-          color: c.hasData ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline),
+      leading: c.hasData
+          ? CompetitionLogo(url: c.emblemUrl, name: c.name, size: 32)
+          : Icon(Icons.info_outline, color: Theme.of(context).colorScheme.outline),
       trailing: IconButton(
         tooltip: fav ? 'Quitar de favoritos' : 'Añadir a favoritos',
         icon: Icon(fav ? Icons.star : Icons.star_outline),

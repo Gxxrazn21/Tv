@@ -9,7 +9,7 @@ class SettingsController extends ChangeNotifier {
   final String deviceTimezone;
   final String defaultApiUrl;
 
-  static const homeSections = ['live', 'upcoming', 'finished', 'favorites', 'featured'];
+  static const homeSections = ['featured', 'favorites', 'live'];
 
   ThemeMode get themeMode => switch (_prefs.getString('theme')) {
         'light' => ThemeMode.light,
@@ -49,6 +49,14 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> setSectionVisible(String section, bool visible) async {
     await _prefs.setBool('home_$section', visible);
+    notifyListeners();
+  }
+
+  /// Por defecto solo se muestran opciones de visionado gratuitas (y legales).
+  bool get onlyFree => _prefs.getBool('only_free') ?? true;
+
+  Future<void> setOnlyFree(bool value) async {
+    await _prefs.setBool('only_free', value);
     notifyListeners();
   }
 

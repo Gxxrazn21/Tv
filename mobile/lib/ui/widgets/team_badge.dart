@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models.dart';
+import 'net_logo.dart';
 
-/// Monograma del equipo. Los escudos son marcas registradas: solo se muestran si el servidor
-/// los sirve expresamente (OPENFOOT_SERVE_CREST_URLS); si no, se usa un monograma propio.
+/// Escudo del equipo; si el servidor no lo sirve o falla, un monograma propio.
 class TeamBadge extends StatelessWidget {
   const TeamBadge(this.team, {super.key, this.size = 32});
 
@@ -18,9 +18,9 @@ class TeamBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final hue = (team.name.hashCode % 360).abs().toDouble();
-    final color = HSLColor.fromAHSL(1, hue, 0.45, Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.55).toColor();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final color = HSLColor.fromAHSL(1, hue, 0.45, dark ? 0.35 : 0.5).toColor();
     final monogram = CircleAvatar(
       radius: size / 2,
       backgroundColor: color,
@@ -29,17 +29,25 @@ class TeamBadge extends StatelessWidget {
         style: TextStyle(color: Colors.white, fontSize: size * 0.3, fontWeight: FontWeight.w700),
       ),
     );
-    final url = team.crestUrl;
-    if (url == null || !url.startsWith('https://')) return ExcludeSemantics(child: monogram);
-    return ExcludeSemantics(
-      child: SizedBox.square(
-        dimension: size,
-        child: Image.network(
-          url,
-          errorBuilder: (_, _, _) => monogram,
-          frameBuilder: (_, child, frame, _) => frame == null ? CircleAvatar(radius: size / 2, backgroundColor: scheme.surfaceContainerHighest) : child,
-        ),
-      ),
+    return NetLogo(url: team.crestUrl, size: size, fallback: ExcludeSemantics(child: monogram));
+  }
+}
+
+/// Logo de la competición; si no hay, un trofeo con las iniciales.
+class CompetitionLogo extends StatelessWidget {
+  const CompetitionLogo({super.key, required this.url, required this.name, this.size = 22});
+
+  final String? url;
+  final String name;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return NetLogo(
+      url: url,
+      size: size,
+      fallback: Icon(Icons.emoji_events, size: size * 0.9, color: scheme.primary),
     );
   }
 }

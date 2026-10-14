@@ -16,11 +16,9 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   static const _sectionNames = {
-    'live': 'En directo',
-    'upcoming': 'Próximos',
-    'finished': 'Finalizados',
-    'favorites': 'Tus favoritos',
     'featured': 'Competiciones destacadas',
+    'favorites': 'Tus favoritos',
+    'live': 'Sección «En directo»',
   };
 
   @override
@@ -52,6 +50,13 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('País para "Dónde ver"'),
             subtitle: Text(s.country != null ? countryName(s.country!) : 'Sin elegir'),
             onTap: () => _pickCountry(context, s),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.money_off),
+            title: const Text('Mostrar solo opciones gratuitas'),
+            subtitle: const Text('Oculta los proveedores de pago en «Dónde ver». Siempre podrás mostrarlos en cada partido.'),
+            value: s.onlyFree,
+            onChanged: s.setOnlyFree,
           ),
           const SectionHeader('Pantalla de inicio'),
           for (final e in _sectionNames.entries)

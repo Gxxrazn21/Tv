@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from sqlalchemy.orm import sessionmaker
 
 from openfoot.config import Settings
 from openfoot.main import create_app
@@ -287,3 +288,27 @@ def test_ready_diagnostics(engine, monkeypatch, tmp_path):
     finally:
         runtime.reset_bootstrap_flag()
         monkeypatch.setattr(db, "_engine", None)
+
+
+def test_crests_and_emblems_when_enabled(engine, synced):
+    settings = Settings(_env_file=None, serve_crest_urls=True, rate_limit_per_minute=1000)
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    def _session():
+        with factory() as s:
+            yield s
+
+    from openfoot.config import get_settings as gset
+    from openfoot.db import get_session as gs
+
+    app = create_app(settings, sources=[])
+    app.dependency_overrides[gs] = _session
+    app.dependency_overrides[gset] = lambda: settings
+    with TestClient(app) as c:
+        data = c.get("/v1/matches", params={"date_from": "2026-10-14"}).json()
+        comps = c.get("/v1/competitions").json()
+    assert data[0]["home"]["crest_url"] == "https://crests.example/1.png"
+    assert data[0]["competition"]["emblem_url"] == "https://crests.example/PL.png"
+    assert (
+        next(x for x in comps if x["code"] == "PL")["emblem_url"] == "https://crests.example/PL.png"
+    )

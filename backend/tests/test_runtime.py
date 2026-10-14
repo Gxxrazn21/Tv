@@ -133,3 +133,15 @@ def test_vercel_entrypoint_exposes_app(monkeypatch, tmp_path):
         assert module["app"].title == "OpenFoot API"
     finally:
         get_settings.cache_clear()
+
+
+def test_on_request_sync_fetches_missing_emblems_once(engine, loaded):
+    settings = Settings(_env_file=None, sync_on_request_interval_minutes=10)
+    calls = []
+    src = make_football_data(calls, competitions=("PL",))
+    now = datetime.now(UTC)
+    runtime.sync_if_stale(engine, settings, [src], now=now)
+    assert any(c.url.path.endswith("/competitions") for c in calls)
+    pl = loaded.scalar(select(Competition).where(Competition.code == "PL"))
+    loaded.refresh(pl)
+    assert pl.emblem_url == "https://crests.example/PL.png"
