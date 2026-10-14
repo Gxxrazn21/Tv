@@ -1,0 +1,1642 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- ARTIFACT-START -->
+<title>Simulador Sumo ESP32</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: dohyo 3D a la izquierda como banco de pruebas, panel de taller (pines, motores, ajustes, código) a la derecha; en móvil se apilan */
+:root {
+  --bg: #e6eaef;
+  --panel: #f7f9fb;
+  --soft: #eaeef3;
+  --ink: #121821;
+  --muted: #586474;
+  --line: #cdd5de;
+  --accent: #2a5bd7;
+  --accent-ink: #ffffff;
+  --hot: #c95f17;
+  --ok: #1b8a50;
+  --bad: #c92f2f;
+  --overlay: rgba(247, 249, 251, .86);
+  --scene-bg: #dde3ea;
+  --scene-floor: #c4ccd6;
+  --f-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1016; --panel: #121821; --soft: #19212c; --ink: #e4e9ef; --muted: #8b97a7; --line: #243042;
+    --accent: #6f95ff; --accent-ink: #0a0f1c; --hot: #ff9a50; --ok: #43c986; --bad: #ff6767;
+    --overlay: rgba(18, 24, 33, .84); --scene-bg: #0e131a; --scene-floor: #18202a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1016; --panel: #121821; --soft: #19212c; --ink: #e4e9ef; --muted: #8b97a7; --line: #243042;
+  --accent: #6f95ff; --accent-ink: #0a0f1c; --hot: #ff9a50; --ok: #43c986; --bad: #ff6767;
+  --overlay: rgba(18, 24, 33, .84); --scene-bg: #0e131a; --scene-floor: #18202a; color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); }
+* { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 410px; }
+.stage { position: relative; min-width: 0; overflow: hidden; background: var(--scene-bg); touch-action: none; }
+.stage canvas { display: block; width: 100%; height: 100%; }
+.panel { min-width: 0; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; display: flex; flex-direction: column; }
+
+/* HUD sobre el dohyo */
+.hud { position: absolute; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+.hud-tl { top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 8px; }
+.brand { display: grid; gap: 0; }
+.eyebrow { font: 500 11px/1.2 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font: 800 34px/1 var(--f-display); letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--overlay); font: 500 11px/1.4 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; }
+.chip.m-parada, .chip.m-desconectado { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+.chip.m-freno { color: var(--ink); }
+.chip.m-normal { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.chip.m-ataque { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 45%, transparent); }
+
+.hud-tr { top: calc(12px + env(safe-area-inset-top, 0px)); right: 16px; display: grid; justify-items: end; gap: 8px; }
+.score { display: flex; align-items: baseline; gap: 10px; padding: 4px 12px; border-radius: 10px; background: var(--overlay); border: 1px solid var(--line); }
+.score span { font: 500 11px var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.score b { font: 800 30px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; padding: 3px; border-radius: 10px; background: var(--overlay); border: 1px solid var(--line); }
+.tools button { border: 0; background: transparent; padding: 5px 9px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 500; }
+.tools button:hover { background: var(--soft); }
+.tools button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+.banner { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); text-align: center; padding: 14px 22px; border-radius: 14px;
+  background: var(--overlay); border: 1px solid var(--line); max-width: min(440px, calc(100% - 32px)); pointer-events: none; }
+.banner strong { display: block; font: 800 30px/1.05 var(--f-display); text-transform: uppercase; text-wrap: balance; }
+.banner p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+.banner kbd, .keys kbd { font: 500 11px var(--f-mono); padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--panel); color: var(--ink); }
+
+.keys { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); right: 16px;
+  font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; pointer-events: none; }
+.speed { position: absolute; right: 16px; bottom: calc(40px + env(safe-area-inset-bottom, 0px)); text-align: right; pointer-events: none; }
+.speed b { font: 800 40px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.speed span { display: block; font: 500 11px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+/* Mando táctil */
+.touch { position: absolute; inset: auto 0 0 0; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
+.touch > * { pointer-events: auto; }
+.tstick { width: 124px; height: 124px; border-radius: 50%; background: var(--overlay); border: 1px solid var(--line); position: relative; touch-action: none; }
+.tstick::after { content: ""; position: absolute; inset: 50% auto auto 50%; width: 1px; height: 1px; }
+.tknob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: var(--ink); opacity: .82; }
+.tbtns { display: grid; grid-template-columns: repeat(2, 58px); gap: 8px; }
+.tbtns button { height: 50px; border-radius: 14px; border: 1px solid var(--line); background: var(--overlay); font: 600 15px var(--f-mono); touch-action: none; cursor: pointer; }
+.tbtns button.on { background: var(--accent); color: var(--accent-ink); }
+body.has-touch .keys { display: none; }
+body.has-touch .speed { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+
+/* Panel */
+.tabs { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--panel); border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: none; padding: 12px 4px 10px; cursor: pointer; font-weight: 500; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.pane { padding-block: 16px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px; align-content: start; }
+.panel .pane { padding-left: 18px; padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+.sec { display: grid; gap: 10px; min-width: 0; }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+h2 { margin: 0; font: 700 21px/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .02em; }
+h3 { margin: 0; font: 600 13px/1.3 var(--f-body); }
+.note { margin: 0; color: var(--muted); font-size: 12.5px; }
+.note b { color: var(--ink); font-weight: 600; }
+.mono { font-family: var(--f-mono); }
+
+/* DS4 */
+.ds4 { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: center; }
+.stickviz { width: 96px; height: 96px; border-radius: 50%; border: 1px solid var(--line); background:
+  radial-gradient(circle, transparent 13px, transparent 14px), var(--soft); position: relative; }
+.stickviz::before, .stickviz::after { content: ""; position: absolute; background: var(--line); }
+.stickviz::before { left: 50%; top: 8px; bottom: 8px; width: 1px; }
+.stickviz::after { top: 50%; left: 8px; right: 8px; height: 1px; }
+.stickviz .dz { position: absolute; left: 50%; top: 50%; border: 1px dashed var(--muted); border-radius: 50%; transform: translate(-50%, -50%); opacity: .5; }
+.stickviz .dot { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--accent); z-index: 1; }
+.trig { display: grid; gap: 7px; min-width: 0; }
+.trow { display: grid; grid-template-columns: 26px minmax(0, 1fr) 40px; gap: 8px; align-items: center; font: 500 12px var(--f-mono); }
+.bar { height: 8px; border-radius: 4px; background: var(--soft); border: 1px solid var(--line); overflow: hidden; position: relative; }
+.bar > span { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent); }
+.bar.hot > span { background: var(--hot); }
+.bar.ink > span { background: var(--ink); }
+.btnrow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.pbtn { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
+.pbtn.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.lightbar { flex: 1; min-width: 60px; height: 10px; border-radius: 5px; background: #0040ff; box-shadow: 0 0 12px -2px currentColor; }
+.srcline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-weight: 500; font-size: 13px; }
+.btn:hover { background: var(--soft); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn[aria-pressed="true"] { background: var(--bad); color: #fff; border-color: var(--bad); }
+
+/* Tabla de pines */
+.tblwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+th { font: 500 11px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; background: var(--soft); }
+td.mono, td .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.lvl { display: inline-block; min-width: 46px; text-align: center; padding: 1px 6px; border-radius: 5px; font: 500 11px var(--f-mono); border: 1px solid var(--line); color: var(--muted); }
+.lvl.hi { background: var(--hot); border-color: var(--hot); color: #fff; }
+.pwmcell { display: grid; grid-template-columns: minmax(40px, 1fr) 42px; gap: 8px; align-items: center; }
+.drvmode { font: 500 12px var(--f-mono); }
+
+/* Motores */
+.motors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; min-width: 0; }
+.mcard h3 { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.kv { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.amp { position: relative; }
+.amp .tick { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink); opacity: .5; }
+.tag { font: 500 10.5px var(--f-mono); padding: 1px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .05em; border: 1px solid var(--line); color: var(--muted); }
+.tag.warn { color: var(--hot); border-color: var(--hot); }
+.tag.bad { color: #fff; background: var(--bad); border-color: var(--bad); }
+.tag.good { color: var(--ok); border-color: var(--ok); }
+.batt { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.stat { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.stat b { display: block; font: 700 24px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+.stat span { font: 500 10.5px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+/* Ajustes */
+.pins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font: 500 11.5px var(--f-mono); letter-spacing: .04em; color: var(--muted); }
+.field input[type="text"], .field input[type="number"], .field select { width: 100%; padding: 6px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); font-family: var(--f-mono); }
+.field .msg { font-size: 11.5px; line-height: 1.35; color: var(--muted); min-height: 1em; }
+.field.err input { border-color: var(--bad); }
+.field.err .msg { color: var(--bad); }
+.field.warn input { border-color: var(--hot); }
+.field.warn .msg { color: var(--hot); }
+.field.ok .msg { color: var(--ok); }
+.range { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; align-items: center; }
+.range input { width: 100%; accent-color: var(--accent); }
+.range output { font: 500 12.5px var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.checks { display: grid; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }
+.checks input { accent-color: var(--accent); width: 16px; height: 16px; }
+.status { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 12.5px; background: var(--soft); }
+.status.bad { border-color: var(--bad); color: var(--bad); }
+.status.good { border-color: var(--ok); color: var(--ok); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Código */
+.code { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); min-width: 0; }
+.code pre { margin: 0; padding: 12px 14px; overflow: auto; max-height: 62vh; font: 12px/1.55 var(--f-mono); tab-size: 2; }
+.code .cbar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--line); background: var(--panel); border-radius: 10px 10px 0 0; }
+.code .cbar span { font: 500 12px var(--f-mono); color: var(--muted); }
+.c-com { color: var(--muted); font-style: italic; }
+.c-kw { color: var(--accent); }
+.c-st { color: var(--ok); }
+.c-pp { color: var(--hot); }
+ol.steps, ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13px; }
+ul.plain { padding-left: 18px; }
+.warnbox { border-left: 3px solid var(--hot); padding: 8px 12px; background: var(--soft); border-radius: 0 8px 8px 0; font-size: 12.5px; }
+
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  .app { display: block; height: auto; }
+  .stage { height: 62vh; height: 62svh; min-height: 360px; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+  h1 { font-size: 26px; }
+  .speed b { font-size: 30px; }
+}
+@media (max-width: 520px) {
+  .hud-tr .tools { max-width: 190px; }
+  .motors, .row2 { grid-template-columns: 1fr; }
+  .batt { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .banner strong { font-size: 24px; }
+  .eyebrow { display: none; }
+  h1 { font-size: 21px; max-width: 150px; }
+  .score { padding: 2px 10px; }
+  .score b { font-size: 22px; }
+  .tools button { padding: 4px 7px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <section class="stage" id="stage" aria-label="Dohyo 3D">
+    <div class="hud hud-tl">
+      <div class="brand">
+        <span class="eyebrow">Mini-sumo · ESP32 + DualShock 4</span>
+        <h1>Simulador Sumo</h1>
+      </div>
+      <div class="chips">
+        <span class="chip m-parada" id="modeChip"><i></i><span id="modeTxt">Parada</span></span>
+        <span class="chip" id="srcChip">Teclado</span>
+      </div>
+    </div>
+    <div class="hud hud-tr">
+      <div class="score" id="scoreBox"><span>Tú</span><b id="scoreMe">0</b><b>:</b><b id="scoreOpp">0</b><span>Rival</span></div>
+      <div class="tools" role="toolbar" aria-label="Vista">
+        <button id="camOrbit" aria-pressed="true">Orbital</button>
+        <button id="camChase" aria-pressed="false">Persecución</button>
+        <button id="camTop" aria-pressed="false">Cenital</button>
+        <button id="btnRound" title="Nueva ronda (R o SHARE)">Ronda</button>
+        <button id="btnTouch" aria-pressed="false" title="Mostrar el mando táctil">Táctil</button>
+      </div>
+    </div>
+    <div class="banner" id="banner"><strong id="bannerT">Robot en parada</strong><p id="bannerP">Pulsa <kbd>T</kbd> o △ con el stick centrado para armarlo.</p></div>
+    <div class="speed"><b id="spd">0.00</b><span>m/s</span></div>
+    <div class="keys">
+      <span><kbd>W</kbd><kbd>S</kbd> avance</span><span><kbd>A</kbd><kbd>D</kbd> giro</span><span><kbd>Shift</kbd> R2 ataque</span>
+      <span><kbd>Espacio</kbd> L2 freno</span><span><kbd>X</kbd> parada</span><span><kbd>T</kbd> △ armar</span><span><kbd>R</kbd> ronda</span>
+    </div>
+    <div class="touch" id="touch" hidden>
+      <div class="tstick" id="tstick" aria-label="Stick izquierdo"><div class="tknob" id="tknob"></div></div>
+      <div class="tbtns">
+        <button id="tL2" aria-label="L2 freno">L2</button>
+        <button id="tR2" aria-label="R2 ataque">R2</button>
+        <button id="tX" aria-label="Parada">✕</button>
+        <button id="tT" aria-label="Armar">△</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-control" aria-selected="true" aria-controls="p-control">Control</button>
+      <button role="tab" id="tab-ajustes" aria-selected="false" aria-controls="p-ajustes">Ajustes</button>
+      <button role="tab" id="tab-codigo" aria-selected="false" aria-controls="p-codigo">Código</button>
+      <button role="tab" id="tab-montaje" aria-selected="false" aria-controls="p-montaje">Montaje</button>
+    </div>
+
+    <!-- CONTROL -->
+    <div class="pane" id="p-control" role="tabpanel">
+      <section class="sec">
+        <div class="sec-h"><h2>DualShock 4</h2><span class="tag" id="connTag">Conectado</span></div>
+        <div class="ds4">
+          <div class="stickviz"><div class="dz" id="dzRing"></div><div class="dot" id="stickDot"></div></div>
+          <div class="trig">
+            <div class="trow"><span>L2</span><div class="bar ink"><span id="barL2"></span></div><span id="valL2">0</span></div>
+            <div class="trow"><span>R2</span><div class="bar hot"><span id="barR2"></span></div><span id="valR2">0</span></div>
+            <div class="btnrow"><span class="pbtn" id="pbX">✕</span><span class="pbtn" id="pbT">△</span><span class="lightbar" id="lightbar" title="Barra de luz del mando"></span></div>
+          </div>
+        </div>
+        <div class="srcline">
+          <p class="note">Un DS4 real conectado al ordenador por USB o Bluetooth también funciona aquí.</p>
+          <button class="btn" id="btnLoss" aria-pressed="false">Cortar señal</button>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><h2>TB6612FNG</h2><span class="drvmode" id="drvMode">STBY bajo</span></div>
+        <p class="note">Salidas del ESP32 tal como las escribe el firmware en cada paso de 10 ms.</p>
+        <div class="tblwrap"><table>
+          <thead><tr><th>Señal</th><th>GPIO</th><th>Estado</th></tr></thead>
+          <tbody id="pinBody"></tbody>
+        </table></div>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><h2>Motores N20</h2><span class="note mono" id="motorNote">6 V · 500 RPM</span></div>
+        <div class="motors">
+          <div class="mcard" id="mcL"></div>
+          <div class="mcard" id="mcR"></div>
+        </div>
+        <p class="note">Las marcas de la barra de corriente son el límite continuo (1,2 A) y de pico (3,2 A) de cada canal del TB6612FNG.</p>
+      </section>
+
+      <section class="sec">
+        <h2>Batería 2S</h2>
+        <div class="batt">
+          <div class="stat"><b id="bV">8.40</b><span>Voltios</span></div>
+          <div class="stat"><b id="bI">0.00</b><span>Amperios</span></div>
+          <div class="stat"><b id="bP">0.0</b><span>Vatios</span></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- AJUSTES -->
+    <div class="pane" id="p-ajustes" role="tabpanel" hidden>
+      <section class="sec">
+        <h2>GPIO del TB6612FNG</h2>
+        <p class="note">Escribe los 7 GPIO que lleva tu CUyLAB V3.1. Mientras falte alguno, el firmware no activa ninguna salida. <button class="btn" id="btnExamplePins" style="padding:2px 8px;font-size:12px">Cargar un ejemplo</button></p>
+        <div class="pins-grid" id="pinsGrid"></div>
+        <div class="status" id="pinsStatus"></div>
+      </section>
+
+      <section class="sec">
+        <h2>Firmware</h2>
+        <div class="field"><label for="sNormal">Límite normal (PWM sin R2)</label><div class="range"><input type="range" id="sNormal" min="20" max="100" step="1"><output id="oNormal"></output></div></div>
+        <div class="field"><label for="sAttack">Límite de ataque (R2 a fondo)</label><div class="range"><input type="range" id="sAttack" min="20" max="100" step="1"><output id="oAttack"></output></div></div>
+        <p class="note" id="voltNote"></p>
+        <div class="field"><label for="sRamp">Rampa (cambio de PWM por segundo)</label><div class="range"><input type="range" id="sRamp" min="1" max="20" step="0.5"><output id="oRamp"></output></div></div>
+        <div class="field"><label for="sTurn">Ganancia de giro</label><div class="range"><input type="range" id="sTurn" min="20" max="100" step="1"><output id="oTurn"></output></div></div>
+        <div class="field"><label for="sExpo">Expo del stick</label><div class="range"><input type="range" id="sExpo" min="0" max="90" step="5"><output id="oExpo"></output></div></div>
+        <div class="field"><label for="sDead">Zona muerta</label><div class="range"><input type="range" id="sDead" min="2" max="20" step="1"><output id="oDead"></output></div></div>
+        <div class="field"><label for="sBrake">Umbral de L2 para frenar</label><div class="range"><input type="range" id="sBrake" min="5" max="80" step="5"><output id="oBrake"></output></div></div>
+        <div class="checks">
+          <label><input type="checkbox" id="cLeftOnA"> Motor izquierdo en la salida A (AO1/AO2)</label>
+          <label><input type="checkbox" id="cInvL"> Invertir motor izquierdo</label>
+          <label><input type="checkbox" id="cInvR"> Invertir motor derecho</label>
+        </div>
+        <div class="field"><label for="sMac">MAC maestra del mando (PS4.begin)</label><input type="text" id="sMac" spellcheck="false" autocomplete="off"><span class="msg" id="macMsg"></span></div>
+      </section>
+
+      <section class="sec">
+        <h2>Cableado físico simulado</h2>
+        <p class="note">Así está soldado el robot virtual. Cámbialo para ensayar la prueba de giro: si el robot gira mal, corrígelo con las casillas del firmware, igual que harás con el real.</p>
+        <div class="checks">
+          <label><input type="checkbox" id="pLeftOnA"> El motor izquierdo está soldado a AO1/AO2</label>
+          <label><input type="checkbox" id="pInvL"> Cables del motor izquierdo cruzados</label>
+          <label><input type="checkbox" id="pInvR"> Cables del motor derecho cruzados</label>
+        </div>
+      </section>
+
+      <section class="sec">
+        <h2>Robot y entorno</h2>
+        <div class="field"><label for="sVbat">Batería (6,6 V vacía · 7,4 V nominal · 8,4 V llena)</label><div class="range"><input type="range" id="sVbat" min="6.6" max="8.4" step="0.1"><output id="oVbat"></output></div></div>
+        <div class="row2">
+          <div class="field"><label for="sRpm">RPM sin carga a 6 V</label><input type="number" id="sRpm" min="50" max="3000" step="10"></div>
+          <div class="field"><label for="sStall">Par de bloqueo (kg·cm)</label><input type="number" id="sStall" min="0.1" max="10" step="0.05"></div>
+          <div class="field"><label for="sIstall">Corriente de bloqueo (A)</label><input type="number" id="sIstall" min="0.1" max="6" step="0.05"></div>
+          <div class="field"><label for="sMass">Masa del robot (g)</label><input type="number" id="sMass" min="100" max="1000" step="10"></div>
+        </div>
+        <p class="note">Valores iniciales de un N20 de 6 V con reductora cercana a 500 RPM. Cámbialos por los de la hoja de datos de tu referencia exacta.</p>
+        <div class="field"><label for="sMu">Agarre de las ruedas (μ)</label><div class="range"><input type="range" id="sMu" min="0.3" max="1.6" step="0.05"><output id="oMu"></output></div></div>
+        <div class="field"><label for="sOpp">Rival</label>
+          <select id="sOpp"><option value="block">Bloque pasivo de 500 g</option><option value="ai">Robot autónomo</option><option value="none">Sin rival</option></select>
+        </div>
+        <button class="btn" id="btnDefaults">Restablecer todos los ajustes</button>
+      </section>
+    </div>
+
+    <!-- CÓDIGO -->
+    <div class="pane" id="p-codigo" role="tabpanel" hidden>
+      <section class="sec">
+        <h2>Firmware del ESP32</h2>
+        <p class="note">El sketch se genera con tus GPIO y ajustes. Su función <b>pasoControl()</b> es la misma que mueve el robot del simulador, así que lo que ves aquí es lo que hará el real.</p>
+        <div class="status" id="codeStatus"></div>
+        <div class="code">
+          <div class="cbar"><span>sumo_ps4.ino</span><button class="btn primary" id="btnCopy">Copiar código</button></div>
+          <pre id="codePre" tabindex="0"></pre>
+        </div>
+      </section>
+      <section class="sec">
+        <h2>Cómo cargarlo</h2>
+        <ol class="steps">
+          <li>Arduino IDE → Gestor de placas → <b>esp32</b> de Espressif, versión <b>2.0.17</b>. La librería del mando no funciona con el núcleo 3.x.</li>
+          <li>Instala la librería <b>PS4Controller</b> (repositorio aed3/PS4-esp32).</li>
+          <li>Placa <b>ESP32 Dev Module</b>, velocidad de subida 921600 y monitor serie a 115200.</li>
+          <li>Conecta el mando al PC por USB y, con SixaxisPairTool, lee su MAC maestra o cámbiala. Escribe esa MAC en Ajustes.</li>
+          <li>Sube el sketch <b>con las ruedas en el aire</b>, pulsa PS en el mando y arma con △.</li>
+        </ol>
+      </section>
+      <section class="sec">
+        <h2>Equivalencias</h2>
+        <div class="tblwrap"><table>
+          <thead><tr><th>Simulador</th><th>Mando real</th><th>Firmware</th></tr></thead>
+          <tbody>
+            <tr><td>W / S</td><td>Stick izq. vertical</td><td class="mono">PS4.LStickY()</td></tr>
+            <tr><td>A / D</td><td>Stick izq. horizontal</td><td class="mono">PS4.LStickX()</td></tr>
+            <tr><td>Shift</td><td>R2</td><td class="mono">PS4.R2Value()</td></tr>
+            <tr><td>Espacio</td><td>L2</td><td class="mono">PS4.L2Value()</td></tr>
+            <tr><td>X</td><td>✕</td><td class="mono">PS4.Cross()</td></tr>
+            <tr><td>T</td><td>△ / OPTIONS</td><td class="mono">PS4.Triangle()</td></tr>
+            <tr><td>Cortar señal</td><td>Mando apagado o lejos</td><td class="mono">sin paquetes 300 ms</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+    </div>
+
+    <!-- MONTAJE -->
+    <div class="pane" id="p-montaje" role="tabpanel" hidden>
+      <section class="sec">
+        <h2>Alimentación</h2>
+        <div class="tblwrap"><table>
+          <thead><tr><th>Origen</th><th>Destino</th></tr></thead>
+          <tbody>
+            <tr><td>LiPo +</td><td>Interruptor → BATTERY + de la PCB</td></tr>
+            <tr><td>LiPo −</td><td>BATTERY − (GND común)</td></tr>
+            <tr><td>MP2315 salida 5 V</td><td>5 V / VIN del ESP32</td></tr>
+            <tr><td>GND del MP2315</td><td>GND del ESP32</td></tr>
+            <tr><td>3,3 V de la PCB</td><td>VCC del TB6612FNG (lógica)</td></tr>
+            <tr><td>Batería (según PCB)</td><td>VM del TB6612FNG (motores)</td></tr>
+          </tbody>
+        </table></div>
+        <div class="warnbox">Nunca lleves los 8,4 V de la batería al pin de 5 V ni al de 3,3 V del ESP32. Mide la salida del MP2315 con el multímetro antes de montar el ESP32 y comprueba en el esquema qué tensión llega a VM.</div>
+      </section>
+      <section class="sec">
+        <h2>Motores</h2>
+        <div class="tblwrap"><table>
+          <thead><tr><th>TB6612FNG</th><th>Función</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">PWMA · AIN1 · AIN2</td><td>Velocidad y sentido del canal A</td></tr>
+            <tr><td class="mono">AO1 · AO2</td><td>Motor A → conector M_LEFT</td></tr>
+            <tr><td class="mono">PWMB · BIN1 · BIN2</td><td>Velocidad y sentido del canal B</td></tr>
+            <tr><td class="mono">BO1 · BO2</td><td>Motor B → conector M_RIGHT</td></tr>
+            <tr><td class="mono">STBY</td><td>Habilita el driver (LOW = todo apagado)</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section class="sec">
+        <h2>Tabla de verdad</h2>
+        <div class="tblwrap"><table>
+          <thead><tr><th>IN1</th><th>IN2</th><th>PWM</th><th>Motor</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">H</td><td class="mono">L</td><td class="mono">duty</td><td>Avance, velocidad según duty</td></tr>
+            <tr><td class="mono">L</td><td class="mono">H</td><td class="mono">duty</td><td>Retroceso</td></tr>
+            <tr><td class="mono">H</td><td class="mono">H</td><td class="mono">—</td><td>Freno corto (L2)</td></tr>
+            <tr><td class="mono">L</td><td class="mono">L</td><td class="mono">—</td><td>Libre, rueda suelta</td></tr>
+            <tr><td colspan="3" class="mono">STBY = L</td><td>Salidas en alta impedancia (✕)</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section class="sec">
+        <h2>Prueba de giro</h2>
+        <ol class="steps">
+          <li>Robot sobre un soporte, ruedas en el aire, batería cargada.</li>
+          <li>Arma con △ y empuja el stick un poco hacia delante.</li>
+          <li>Si gira la rueda equivocada, cambia «Motor izquierdo en la salida A».</li>
+          <li>Si una rueda va hacia atrás, marca «Invertir» en ese motor.</li>
+          <li>Comprueba ✕: las dos ruedas deben quedar libres al instante.</li>
+          <li>Apaga el mando: el robot debe pararse en menos de medio segundo.</li>
+        </ol>
+        <p class="note">Puedes ensayarlo antes aquí: en Ajustes, sección «Cableado físico simulado», cruza un motor y corrígelo desde el firmware.</p>
+      </section>
+      <section class="sec">
+        <h2>Antes del modo ataque</h2>
+        <ul class="plain">
+          <li>Los N20 son de 6 V: con la batería llena, más del 71 % de PWM les da más tensión de la nominal.</li>
+          <li>Mide la corriente con las ruedas bloqueadas. Si pasa de 1,2 A por motor de forma sostenida, el TB6612FNG se calienta y puede apagarse.</li>
+          <li>Sube el límite de ataque de 5 en 5 y toca motores y driver tras cada combate.</li>
+        </ul>
+      </section>
+    </div>
+  </aside>
+</div>
+
+<script type="text/plain" id="tplFirmware">/*
+  Robot de mini-sumo RC: ESP32-WROOM-32 + DualShock 4 + TB6612FNG
+  PCB CUyLAB V3.1 · LiPo 2S 500 mAh · 2 motores N20 6 V 500 RPM
+
+  Generado por el Simulador Sumo ESP32. La función pasoControl() es la
+  misma que mueve el robot del simulador: con los mismos ajustes, el
+  robot real responde igual al mando.
+
+  Preparación
+   1. Arduino IDE > Gestor de placas > "esp32" de Espressif, versión 2.0.17
+      (la librería PS4Controller no funciona con el núcleo 3.x).
+   2. Librería "PS4Controller" (github.com/aed3/PS4-esp32).
+   3. Placa "ESP32 Dev Module". Monitor serie a 115200 baudios.
+   4. El mando solo se conecta a la MAC maestra que tiene guardada.
+      Léela o cámbiala con SixaxisPairTool (mando por USB al PC) y
+      escríbela en PS4_MAC.
+   5. Completa los 7 GPIO. Si alguno vale -1 o no sirve como salida,
+      el programa no activa ninguna salida y lo avisa por el monitor serie.
+
+  Controles
+   Stick izquierdo vertical    avance y retroceso
+   Stick izquierdo horizontal  giro diferencial
+   R2 (analógico)              ataque: sube el límite de potencia
+   L2                          freno corto (IN1 = IN2 = HIGH)
+   X                           parada inmediata (STBY = LOW)
+   Triángulo u OPTIONS         rearmar, con el stick centrado y R2 suelto
+   El robot arranca en parada y vuelve a ella si se pierde el mando.
+*/
+
+#include <PS4Controller.h>
+
+// ---------- Mando ----------
+const char* PS4_MAC = "{{MAC}}";
+
+// ---------- GPIO del TB6612FNG (-1 = sin confirmar) ----------
+const int PIN_PWMA = {{PWMA}};
+const int PIN_AIN1 = {{AIN1}};
+const int PIN_AIN2 = {{AIN2}};
+const int PIN_STBY = {{STBY}};
+const int PIN_BIN1 = {{BIN1}};
+const int PIN_BIN2 = {{BIN2}};
+const int PIN_PWMB = {{PWMB}};
+
+// ---------- Montaje: ajustar con la prueba de giro ----------
+const bool MOTOR_IZQ_EN_A = {{IZQ_EN_A}};  // true: motor izquierdo en AO1/AO2
+const bool INVERTIR_IZQ   = {{INV_IZQ}};
+const bool INVERTIR_DER   = {{INV_DER}};
+
+// ---------- Conducción ----------
+// Con la batería llena (8,4 V), un 71 % de PWM equivale a unos 6 V en el motor.
+const float LIMITE_NORMAL = {{NORMAL}};  // fracción de PWM sin R2
+const float LIMITE_ATAQUE = {{ATTACK}};  // fracción de PWM con R2 a fondo
+const float RAMPA         = {{RAMP}};  // cambio máximo de PWM por segundo (1 = 100 %)
+const float GANANCIA_GIRO = {{TURN}};
+const float EXPO          = {{EXPO}};  // 0 = lineal; cerca de 1 = muy suave en el centro
+const float ZONA_MUERTA   = {{DEADZONE}};
+const float UMBRAL_FRENO  = {{BRAKE}};  // recorrido de L2 que activa el freno
+
+const uint32_t PERIODO_MS    = 10;     // bucle de control a 100 Hz
+const uint32_t SIN_SENAL_MS  = 300;    // sin paquetes del mando durante este tiempo = parada
+const uint32_t PWM_FREQ      = 20000;  // 20 kHz, fuera del rango audible
+const uint8_t  PWM_BITS      = 8;
+const int      PWM_MAX       = (1 << PWM_BITS) - 1;
+const bool     DEPURAR       = false;  // true: imprime el estado cada 250 ms
+
+// ---------- Tipos y estado ----------
+enum Modo { DESCONECTADO, PARADA, FRENO, NORMAL, ATAQUE };
+const char* NOMBRE_MODO[] = { "desconectado", "parada", "freno", "normal", "ataque" };
+
+struct Entrada { bool conectado; float lx, ly, r2, l2; bool cruz, rearmar; };
+struct Estado  { bool parada; float salIzq, salDer; };
+struct Motor   { int pwm, in1, in2, canal; bool invertir; };
+
+Estado estado = { true, 0, 0 };
+Motor motorIzq, motorDer;
+bool pinesListos = false;
+uint32_t ultimoPaso = 0, ultimaTraza = 0;
+volatile uint32_t ultimoPaquete = 0;
+int ultimoModo = -1;
+
+float limitar(float v, float lo, float hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+float zonaMuerta(float v) {
+  float a = fabsf(v);
+  if (a < ZONA_MUERTA) return 0;
+  return copysignf((a - ZONA_MUERTA) / (1 - ZONA_MUERTA), v);
+}
+
+float curvaExpo(float v) { return v * (EXPO * v * v + (1 - EXPO)); }
+
+float rampa(float actual, float objetivo, float paso) {
+  return actual + limitar(objetivo - actual, -paso, paso);
+}
+
+// Lógica de conducción. Es la misma que ejecuta el simulador.
+Modo pasoControl(Estado& st, const Entrada& in, float dt) {
+  if (!in.conectado) { st.parada = true; st.salIzq = st.salDer = 0; return DESCONECTADO; }
+  if (in.cruz) st.parada = true;
+  bool centrado = zonaMuerta(in.lx) == 0 && zonaMuerta(in.ly) == 0 && in.r2 < 0.1f;
+  if (st.parada && in.rearmar && centrado) st.parada = false;
+  if (st.parada) { st.salIzq = st.salDer = 0; return PARADA; }
+  if (in.l2 > UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return FRENO; }
+
+  float avance = curvaExpo(zonaMuerta(in.ly));
+  float giro = curvaExpo(zonaMuerta(in.lx)) * GANANCIA_GIRO;
+  float izq = avance + giro;
+  float der = avance - giro;
+  float m = fmaxf(fabsf(izq), fabsf(der));
+  if (m > 1) { izq /= m; der /= m; }
+
+  float limite = LIMITE_NORMAL + (LIMITE_ATAQUE - LIMITE_NORMAL) * in.r2;
+  float paso = RAMPA * dt;
+  st.salIzq = rampa(st.salIzq, izq * limite, paso);
+  st.salDer = rampa(st.salDer, der * limite, paso);
+  return in.r2 > 0.1f ? ATAQUE : NORMAL;
+}
+
+// ---------- TB6612FNG ----------
+void pwmConfigurar(const Motor& m) {
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+  ledcAttach(m.pwm, PWM_FREQ, PWM_BITS);
+#else
+  ledcSetup(m.canal, PWM_FREQ, PWM_BITS);
+  ledcAttachPin(m.pwm, m.canal);
+#endif
+}
+
+void pwmEscribir(const Motor& m, int duty) {
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+  ledcWrite(m.pwm, duty);
+#else
+  ledcWrite(m.canal, duty);
+#endif
+}
+
+// v entre -1 y 1. Con 0 el motor queda libre (IN1 = IN2 = LOW).
+void moverMotor(const Motor& m, float v) {
+  if (m.invertir) v = -v;
+  int duty = (int)lroundf(fabsf(v) * PWM_MAX);
+  if (duty == 0) {
+    digitalWrite(m.in1, LOW);
+    digitalWrite(m.in2, LOW);
+    pwmEscribir(m, 0);
+    return;
+  }
+  digitalWrite(m.in1, v > 0 ? HIGH : LOW);
+  digitalWrite(m.in2, v > 0 ? LOW : HIGH);
+  pwmEscribir(m, duty);
+}
+
+// Freno corto: los dos terminales del motor unidos a GND.
+void frenarMotor(const Motor& m) {
+  digitalWrite(m.in1, HIGH);
+  digitalWrite(m.in2, HIGH);
+  pwmEscribir(m, PWM_MAX);
+}
+
+bool pinValido(int p) {
+  if (p < 0 || p > 33) return false;              // 34-39 son solo de entrada
+  if (p >= 6 && p <= 11) return false;            // memoria flash
+  if (p == 20 || p == 24 || (p >= 28 && p <= 31)) return false;  // no existen
+  return true;
+}
+
+bool pinesValidos() {
+  const int pines[] = { PIN_PWMA, PIN_AIN1, PIN_AIN2, PIN_STBY, PIN_BIN1, PIN_BIN2, PIN_PWMB };
+  for (int i = 0; i < 7; i++) {
+    if (!pinValido(pines[i])) return false;
+    for (int j = i + 1; j < 7; j++) if (pines[i] == pines[j]) return false;
+  }
+  return true;
+}
+
+// ---------- Mando ----------
+void alRecibirPaquete() { ultimoPaquete = millis(); }
+
+void colorMando(Modo modo) {
+  if (modo == ultimoModo) return;
+  ultimoModo = modo;
+  switch (modo) {
+    case PARADA: PS4.setLed(255, 0, 0); break;
+    case FRENO:  PS4.setLed(255, 255, 255); break;
+    case ATAQUE: PS4.setLed(255, 80, 0); break;
+    default:     PS4.setLed(0, 60, 255); break;
+  }
+  PS4.sendToController();
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(200);
+
+  if (pinesValidos()) {
+    Motor a = { PIN_PWMA, PIN_AIN1, PIN_AIN2, 0, false };
+    Motor b = { PIN_PWMB, PIN_BIN1, PIN_BIN2, 1, false };
+    motorIzq = MOTOR_IZQ_EN_A ? a : b;
+    motorDer = MOTOR_IZQ_EN_A ? b : a;
+    motorIzq.invertir = INVERTIR_IZQ;
+    motorDer.invertir = INVERTIR_DER;
+
+    pinMode(PIN_STBY, OUTPUT);
+    digitalWrite(PIN_STBY, LOW);
+    const int salidas[] = { PIN_AIN1, PIN_AIN2, PIN_BIN1, PIN_BIN2 };
+    for (int p : salidas) { pinMode(p, OUTPUT); digitalWrite(p, LOW); }
+    pwmConfigurar(motorIzq);
+    pwmConfigurar(motorDer);
+    moverMotor(motorIzq, 0);
+    moverMotor(motorDer, 0);
+    pinesListos = true;
+  } else {
+    Serial.println("GPIO del TB6612FNG sin completar, repetidos o no válidos como salida.");
+    Serial.println("No se activa ninguna salida. Puedes probar el mando: se imprimirá su estado.");
+  }
+
+  PS4.attach(alRecibirPaquete);
+  PS4.begin(PS4_MAC);
+  Serial.printf("Esperando al DualShock 4 (MAC %s). Pulsa PS en el mando.\n", PS4_MAC);
+}
+
+void loop() {
+  uint32_t ahora = millis();
+  if (ahora - ultimoPaso < PERIODO_MS) return;
+  float dt = limitar((ahora - ultimoPaso) / 1000.0f, 0, 0.05f);
+  ultimoPaso = ahora;
+
+  Entrada in = { false, 0, 0, 0, 0, false, false };
+  in.conectado = PS4.isConnected() && (ahora - ultimoPaquete) < SIN_SENAL_MS;
+  if (in.conectado) {
+    in.lx = limitar(PS4.LStickX() / 127.0f, -1, 1);
+    in.ly = limitar(PS4.LStickY() / 127.0f, -1, 1);
+    in.r2 = PS4.R2Value() / 255.0f;
+    in.l2 = PS4.L2Value() / 255.0f;
+    in.cruz = PS4.Cross();
+    in.rearmar = PS4.Triangle() || PS4.Options();
+  }
+
+  Modo modo = pasoControl(estado, in, dt);
+  if (in.conectado) colorMando(modo); else ultimoModo = -1;
+
+  if (pinesListos) {
+    if (modo == DESCONECTADO || modo == PARADA) {
+      moverMotor(motorIzq, 0);
+      moverMotor(motorDer, 0);
+      digitalWrite(PIN_STBY, LOW);
+    } else if (modo == FRENO) {
+      digitalWrite(PIN_STBY, HIGH);
+      frenarMotor(motorIzq);
+      frenarMotor(motorDer);
+    } else {
+      digitalWrite(PIN_STBY, HIGH);
+      moverMotor(motorIzq, estado.salIzq);
+      moverMotor(motorDer, estado.salDer);
+    }
+  }
+
+  if ((DEPURAR || !pinesListos) && ahora - ultimaTraza >= 250) {
+    ultimaTraza = ahora;
+    Serial.printf("%-12s lx=%+.2f ly=%+.2f r2=%.2f l2=%.2f  izq=%+.2f der=%+.2f\n",
+                  NOMBRE_MODO[modo], in.lx, in.ly, in.r2, in.l2, estado.salIzq, estado.salDer);
+  }
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+   1. Ajustes (se guardan en este navegador)
+   ========================================================= */
+const PIN_NAMES = ['PWMA', 'AIN1', 'AIN2', 'STBY', 'BIN1', 'BIN2', 'PWMB'];
+const EXAMPLE_PINS = { PWMA: 32, AIN1: 25, AIN2: 26, STBY: 27, BIN1: 14, BIN2: 13, PWMB: 33 };
+const DEFAULTS = {
+  pins: { PWMA: '', AIN1: '', AIN2: '', STBY: '', BIN1: '', BIN2: '', PWMB: '' },
+  mac: '01:02:03:04:05:06',
+  normal: 70, attack: 85, ramp: 6, turn: 75, expo: 40, dead: 8, brake: 20,
+  leftOnA: true, invL: false, invR: false,
+  pLeftOnA: true, pInvL: false, pInvR: false,
+  vbat: 8.4, rpm: 500, stall: 1.0, istall: 1.6, mass: 400, mu: 1.0,
+  opp: 'block', cam: 'orbit', touch: null
+};
+const STORE_KEY = 'sumo-esp32-sim-v1';
+let S = loadSettings();
+function loadSettings() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { saved = null; }
+  const s = JSON.parse(JSON.stringify(DEFAULTS));
+  if (saved && typeof saved === 'object') {
+    for (const k of Object.keys(DEFAULTS)) if (k in saved && k !== 'pins') s[k] = saved[k];
+    if (saved.pins) for (const p of PIN_NAMES) if (p in saved.pins) s.pins[p] = String(saved.pins[p]);
+  }
+  return s;
+}
+function saveSettings() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* sin almacenamiento */ } }
+
+/* =========================================================
+   2. Lógica del firmware (espejo exacto de pasoControl en C++)
+   ========================================================= */
+function fwConfig() {
+  return {
+    LIMITE_NORMAL: S.normal / 100, LIMITE_ATAQUE: S.attack / 100, RAMPA: S.ramp,
+    GANANCIA_GIRO: S.turn / 100, EXPO: S.expo / 100, ZONA_MUERTA: S.dead / 100, UMBRAL_FRENO: S.brake / 100,
+    MOTOR_IZQ_EN_A: S.leftOnA, INVERTIR_IZQ: S.invL, INVERTIR_DER: S.invR
+  };
+}
+const limitar = (v, lo, hi) => v < lo ? lo : (v > hi ? hi : v);
+function makeFw(cfg) {
+  const zonaMuerta = v => { const a = Math.abs(v); if (a < cfg.ZONA_MUERTA) return 0; return Math.sign(v) * (a - cfg.ZONA_MUERTA) / (1 - cfg.ZONA_MUERTA); };
+  const curvaExpo = v => v * (cfg.EXPO * v * v + (1 - cfg.EXPO));
+  const rampa = (actual, objetivo, paso) => actual + limitar(objetivo - actual, -paso, paso);
+  function pasoControl(st, inp, dt) {
+    if (!inp.conectado) { st.parada = true; st.salIzq = st.salDer = 0; return 'desconectado'; }
+    if (inp.cruz) st.parada = true;
+    const centrado = zonaMuerta(inp.lx) === 0 && zonaMuerta(inp.ly) === 0 && inp.r2 < 0.1;
+    if (st.parada && inp.rearmar && centrado) st.parada = false;
+    if (st.parada) { st.salIzq = st.salDer = 0; return 'parada'; }
+    if (inp.l2 > cfg.UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return 'freno'; }
+    const avance = curvaExpo(zonaMuerta(inp.ly));
+    const giro = curvaExpo(zonaMuerta(inp.lx)) * cfg.GANANCIA_GIRO;
+    let izq = avance + giro, der = avance - giro;
+    const m = Math.max(Math.abs(izq), Math.abs(der));
+    if (m > 1) { izq /= m; der /= m; }
+    const limite = cfg.LIMITE_NORMAL + (cfg.LIMITE_ATAQUE - cfg.LIMITE_NORMAL) * inp.r2;
+    const paso = cfg.RAMPA * dt;
+    st.salIzq = rampa(st.salIzq, izq * limite, paso);
+    st.salDer = rampa(st.salDer, der * limite, paso);
+    return inp.r2 > 0.1 ? 'ataque' : 'normal';
+  }
+  // Escritura de pines: moverMotor / frenarMotor / STBY, igual que loop()
+  function escribirPines(modo, st) {
+    const pins = { STBY: 0, AIN1: 0, AIN2: 0, PWMA: 0, BIN1: 0, BIN2: 0, PWMB: 0 };
+    const izqCh = cfg.MOTOR_IZQ_EN_A ? 'A' : 'B', derCh = cfg.MOTOR_IZQ_EN_A ? 'B' : 'A';
+    const mover = (ch, v, inv) => {
+      if (inv) v = -v;
+      const duty = Math.round(Math.abs(v) * 255);
+      if (duty === 0) { pins[ch + 'IN1'] = 0; pins[ch + 'IN2'] = 0; pins['PWM' + ch] = 0; return; }
+      pins[ch + 'IN1'] = v > 0 ? 1 : 0; pins[ch + 'IN2'] = v > 0 ? 0 : 1; pins['PWM' + ch] = duty;
+    };
+    const frenar = ch => { pins[ch + 'IN1'] = 1; pins[ch + 'IN2'] = 1; pins['PWM' + ch] = 255; };
+    if (modo === 'desconectado' || modo === 'parada') { mover(izqCh, 0, cfg.INVERTIR_IZQ); mover(derCh, 0, cfg.INVERTIR_DER); pins.STBY = 0; }
+    else if (modo === 'freno') { pins.STBY = 1; frenar(izqCh); frenar(derCh); }
+    else { pins.STBY = 1; mover(izqCh, st.salIzq, cfg.INVERTIR_IZQ); mover(derCh, st.salDer, cfg.INVERTIR_DER); }
+    return pins;
+  }
+  return { pasoControl, escribirPines, zonaMuerta };
+}
+let FW = makeFw(fwConfig());
+
+/* =========================================================
+   3. TB6612FNG y motores (modelo eléctrico promediado)
+   ========================================================= */
+function canalDriver(stby, in1, in2, duty) {
+  if (!stby) return { mode: 'coast', frac: 0 };
+  if (in1 && in2) return { mode: 'brake', frac: 0 };
+  if (!in1 && !in2) return { mode: 'coast', frac: 0 };
+  if (duty === 0) return { mode: 'brake', frac: 0 };          // PWM bajo con sentido fijado = freno corto
+  return { mode: 'drive', frac: (in1 ? 1 : -1) * duty / 255 };
+}
+// Del par de canales A/B al motor físico izquierdo/derecho según cómo está soldado
+function cableadoFisico(pins, wiring) {
+  const A = canalDriver(pins.STBY, pins.AIN1, pins.AIN2, pins.PWMA);
+  const B = canalDriver(pins.STBY, pins.BIN1, pins.BIN2, pins.PWMB);
+  const L = Object.assign({}, wiring.leftOnA ? A : B), R = Object.assign({}, wiring.leftOnA ? B : A);
+  if (wiring.invL) L.frac = -L.frac;
+  if (wiring.invR) R.frac = -R.frac;
+  return { L, R };
+}
+
+/* =========================================================
+   4. Física 2D (x adelante, y izquierda) con pasos de 0,5 ms
+   ========================================================= */
+const G = 9.81;
+const RING_R = 0.385, RING_H = 0.025, LINE_W = 0.025;
+const WHEEL_R = 0.017, TRACK = 0.083, WHEEL_X = -0.012, J_WHEEL = 4e-5;
+const WHEEL_FRAC = 0.8, R_INT = 0.12, LIFT = 0.35;
+const DT = 1 / 2000, CTRL_EVERY = 20; // control a 100 Hz, como PERIODO_MS = 10
+const BLOCK_MU = 0.45;
+
+function motorParams(mu) {
+  return {
+    om0: S.rpm * 2 * Math.PI / 60, tStall: S.stall * 0.0980665, iStall: S.istall, vbat: S.vbat, mu
+  };
+}
+function newRobot(x, th, color) {
+  const m = S.mass / 1000;
+  return {
+    kind: 'robot', x, y: 0, th, vx: 0, vy: 0, w: 0, m, I: m * (0.01 + 0.01) / 12, len: 0.1, wid: 0.1,
+    wheels: [{ side: 'L', py: TRACK / 2, om: 0, ang: 0, cur: 0, veff: 0, slip: 0 }, { side: 'R', py: -TRACK / 2, om: 0, ang: 0, cur: 0, veff: 0, slip: 0 }],
+    itot: 0, vb: S.vbat, lift: 0, liftBonus: 0, out: false, z: RING_H, vz: 0, tilt: 0, pitch: 0, color
+  };
+}
+function newBlock(x) {
+  const m = 0.5;
+  return { kind: 'block', x, y: 0, th: Math.PI, vx: 0, vy: 0, w: 0, m, I: m * 0.02 / 12, len: 0.1, wid: 0.1, lift: 0, liftBonus: 0, out: false, z: RING_H, vz: 0, tilt: 0, pitch: 0 };
+}
+function integrate(b, Fx, Fy, T, dt) {
+  b.vx += Fx / b.m * dt; b.vy += Fy / b.m * dt; b.w += T / b.I * dt;
+  b.x += b.vx * dt; b.y += b.vy * dt; b.th += b.w * dt;
+}
+function stepRobot(b, drv, P, dt) {
+  const c = Math.cos(b.th), s = Math.sin(b.th);
+  let Fx = 0, Fy = 0, T = 0, itot = 0;
+  const Nw = WHEEL_FRAC * b.m * G / 2 * (1 - b.lift) + b.liftBonus;
+  const Vb = Math.max(0, P.vbat - R_INT * b.itot);
+  b.vb = Vb;
+  for (const wh of b.wheels) {
+    const rx = WHEEL_X * c - wh.py * s, ry = WHEEL_X * s + wh.py * c;
+    const vcx = b.vx - b.w * ry, vcy = b.vy + b.w * rx;
+    const vLong = vcx * c + vcy * s, vLat = -vcx * s + vcy * c;
+    const d = drv[wh.side];
+    const ratio = wh.om / P.om0;
+    let tq = 0, cur = 0, veff = 0;
+    if (d.mode === 'drive') { veff = d.frac * Vb; tq = P.tStall * (veff / 6 - ratio); cur = P.iStall * (veff / 6 - ratio); }
+    else if (d.mode === 'brake') { tq = -P.tStall * ratio; cur = -P.iStall * ratio; }
+    tq -= P.tStall * 0.03 * Math.tanh(wh.om / 2);
+    const slip = wh.om * WHEEL_R - vLong;
+    const Fl = P.mu * Nw * Math.tanh(slip / 0.03);
+    const Ft = -P.mu * Nw * Math.tanh(vLat / 0.01);
+    wh.om += (tq - Fl * WHEEL_R) / J_WHEEL * dt;
+    wh.ang += wh.om * dt; wh.cur = cur; wh.veff = veff; wh.slip = slip; wh.Fmax = P.mu * Nw; wh.Fl = Fl;
+    itot += Math.abs(cur);
+    const fx = Fl * c - Ft * s, fy = Fl * s + Ft * c;
+    Fx += fx; Fy += fy; T += rx * fy - ry * fx;
+  }
+  b.itot = itot;
+  // Patín delantero de la cuña
+  const Ns = (1 - WHEEL_FRAC) * b.m * G;
+  const sx = 0.04 * c, sy = 0.04 * s;
+  const vsx = b.vx - b.w * sy, vsy = b.vy + b.w * sx;
+  const fsx = -0.25 * Ns * Math.tanh(vsx / 0.02), fsy = -0.25 * Ns * Math.tanh(vsy / 0.02);
+  Fx += fsx; Fy += fsy; T += sx * fsy - sy * fsx;
+  integrate(b, Fx, Fy, T, dt);
+}
+function stepBlock(b, dt) {
+  const c = Math.cos(b.th), s = Math.sin(b.th);
+  const N = b.m * G / 4 * (1 - b.lift);
+  let Fx = 0, Fy = 0, T = 0;
+  for (const [px, py] of [[0.04, 0.04], [0.04, -0.04], [-0.04, 0.04], [-0.04, -0.04]]) {
+    const rx = px * c - py * s, ry = px * s + py * c;
+    const vx = b.vx - b.w * ry, vy = b.vy + b.w * rx;
+    const fx = -BLOCK_MU * N * Math.tanh(vx / 0.02), fy = -BLOCK_MU * N * Math.tanh(vy / 0.02);
+    Fx += fx; Fy += fy; T += rx * fy - ry * fx;
+  }
+  integrate(b, Fx, Fy, T, dt);
+}
+function stepFalling(b, dt) {
+  b.x += b.vx * dt; b.y += b.vy * dt; b.th += b.w * dt;
+  if (b.z > 0) {
+    b.vz -= G * dt; b.z += b.vz * dt; b.tilt = Math.min(1.1, b.tilt + dt * 4);
+    if (b.z <= 0) { b.z = 0; b.vz = 0; }
+  } else {
+    const k = Math.exp(-dt * 8); b.vx *= k; b.vy *= k; b.w *= k;
+  }
+}
+
+// Colisión entre dos rectángulos orientados (SAT) con impulso
+function corners(b) {
+  const c = Math.cos(b.th), s = Math.sin(b.th), hx = b.len / 2, hy = b.wid / 2;
+  return [[hx, hy], [hx, -hy], [-hx, -hy], [-hx, hy]].map(([px, py]) => [b.x + px * c - py * s, b.y + px * s + py * c]);
+}
+function inside(b, p) {
+  const c = Math.cos(b.th), s = Math.sin(b.th), dx = p[0] - b.x, dy = p[1] - b.y;
+  const lx = dx * c + dy * s, ly = -dx * s + dy * c;
+  return Math.abs(lx) <= b.len / 2 + 1e-4 && Math.abs(ly) <= b.wid / 2 + 1e-4;
+}
+function collide(A, B) {
+  if (Math.hypot(A.x - B.x, A.y - B.y) > 0.15) return null;
+  const ca = corners(A), cb = corners(B);
+  const axes = [[Math.cos(A.th), Math.sin(A.th)], [-Math.sin(A.th), Math.cos(A.th)], [Math.cos(B.th), Math.sin(B.th)], [-Math.sin(B.th), Math.cos(B.th)]];
+  let depth = Infinity, n = null;
+  for (const ax of axes) {
+    let a0 = Infinity, a1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+    for (const p of ca) { const d = p[0] * ax[0] + p[1] * ax[1]; a0 = Math.min(a0, d); a1 = Math.max(a1, d); }
+    for (const p of cb) { const d = p[0] * ax[0] + p[1] * ax[1]; b0 = Math.min(b0, d); b1 = Math.max(b1, d); }
+    const o = Math.min(a1, b1) - Math.max(a0, b0);
+    if (o <= 0) return null;
+    if (o < depth) { depth = o; n = ax; }
+  }
+  if ((B.x - A.x) * n[0] + (B.y - A.y) * n[1] < 0) n = [-n[0], -n[1]];
+  const pts = cb.filter(p => inside(A, p)).concat(ca.filter(p => inside(B, p)));
+  let px, py;
+  if (pts.length) { px = pts.reduce((t, p) => t + p[0], 0) / pts.length; py = pts.reduce((t, p) => t + p[1], 0) / pts.length; }
+  else { px = (A.x + B.x) / 2; py = (A.y + B.y) / 2; }
+  return { n, depth, px, py };
+}
+function resolve(A, B, ct) {
+  const { n, depth, px, py } = ct;
+  const iA = 1 / A.m, iB = 1 / B.m;
+  const corr = Math.max(depth - 0.0003, 0) * 0.6 / (iA + iB);
+  A.x -= n[0] * corr * iA; A.y -= n[1] * corr * iA; B.x += n[0] * corr * iB; B.y += n[1] * corr * iB;
+  const rAx = px - A.x, rAy = py - A.y, rBx = px - B.x, rBy = py - B.y;
+  const vAx = A.vx - A.w * rAy, vAy = A.vy + A.w * rAx, vBx = B.vx - B.w * rBy, vBy = B.vy + B.w * rBx;
+  const rvx = vBx - vAx, rvy = vBy - vAy;
+  const vn = rvx * n[0] + rvy * n[1];
+  if (vn >= 0) return 0;
+  const rAn = rAx * n[1] - rAy * n[0], rBn = rBx * n[1] - rBy * n[0];
+  const j = -(1 + 0.1) * vn / (iA + iB + rAn * rAn / A.I + rBn * rBn / B.I);
+  A.vx -= j * n[0] * iA; A.vy -= j * n[1] * iA; A.w -= rAn * j / A.I;
+  B.vx += j * n[0] * iB; B.vy += j * n[1] * iB; B.w += rBn * j / B.I;
+  const t = [-n[1], n[0]];
+  const vt = rvx * t[0] + rvy * t[1];
+  const rAt = rAx * t[1] - rAy * t[0], rBt = rBx * t[1] - rBy * t[0];
+  let jt = -vt / (iA + iB + rAt * rAt / A.I + rBt * rBt / B.I);
+  jt = limitar(jt, -0.4 * j, 0.4 * j);
+  A.vx -= jt * t[0] * iA; A.vy -= jt * t[1] * iA; A.w -= rAt * jt / A.I;
+  B.vx += jt * t[0] * iB; B.vy += jt * t[1] * iB; B.w += rBt * jt / B.I;
+  return j;
+}
+
+/* =========================================================
+   5. Estado de la simulación
+   ========================================================= */
+const sim = {
+  me: null, opp: null, st: { parada: true, salIzq: 0, salDer: 0 }, mode: 'parada', pins: null, drv: null,
+  ai: { st: { parada: true, salIzq: 0, salDer: 0 }, fw: null, drv: { L: { mode: 'coast', frac: 0 }, R: { mode: 'coast', frac: 0 } } },
+  steps: 0, t: 0, over: false, result: '', score: { me: 0, opp: 0 }, lossOfSignal: false, impact: 0
+};
+function resetRound() {
+  sim.me = newRobot(-0.16, 0, 0x2b3442);
+  sim.opp = S.opp === 'block' ? newBlock(0.16) : S.opp === 'ai' ? newRobot(0.16, Math.PI, 0x6b1f1f) : null;
+  sim.st = { parada: sim.st ? sim.st.parada : true, salIzq: 0, salDer: 0 };
+  sim.ai.st = { parada: true, salIzq: 0, salDer: 0 };
+  sim.ai.fw = makeFw({ LIMITE_NORMAL: 0.55, LIMITE_ATAQUE: 0.7, RAMPA: 5, GANANCIA_GIRO: 0.8, EXPO: 0.2, ZONA_MUERTA: 0.05, UMBRAL_FRENO: 0.5, MOTOR_IZQ_EN_A: true, INVERTIR_IZQ: false, INVERTIR_DER: false });
+  sim.t = 0; sim.over = false; sim.result = '';
+  if (scene3d) scene3d.syncOpponent();
+}
+
+function aiInput(ai, me, t) {
+  const inp = { conectado: true, lx: 0, ly: 0, r2: 0, l2: 0, cruz: false, rearmar: true };
+  if (t < 1.0 || me.out) return inp;
+  const err = wrap(Math.atan2(me.y - ai.y, me.x - ai.x) - ai.th);
+  inp.lx = limitar(-err * 1.6, -1, 1);
+  inp.ly = Math.cos(err) > 0.6 ? 0.9 : 0.15;
+  inp.r2 = Math.abs(err) < 0.25 ? 1 : 0;
+  const r = Math.hypot(ai.x, ai.y);
+  if (r > RING_R - 0.07) {
+    const e2 = wrap(Math.atan2(-ai.y, -ai.x) - ai.th);
+    if (Math.abs(e2) > 1.3) { inp.ly = -0.7; inp.lx = limitar(e2 > 0 ? 1 : -1, -1, 1); inp.r2 = 0; }
+  }
+  return inp;
+}
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+
+let input = { conectado: true, lx: 0, ly: 0, r2: 0, l2: 0, cruz: false, rearmar: false };
+function controlTick(dt) {
+  const inp = Object.assign({}, input, { conectado: input.conectado && !sim.lossOfSignal });
+  sim.mode = FW.pasoControl(sim.st, inp, dt);
+  sim.pins = FW.escribirPines(sim.mode, sim.st);
+  sim.drv = cableadoFisico(sim.pins, { leftOnA: S.pLeftOnA, invL: S.pInvL, invR: S.pInvR });
+  if (sim.opp && sim.opp.kind === 'robot') {
+    const a = sim.ai;
+    const m = a.fw.pasoControl(a.st, aiInput(sim.opp, sim.me, sim.t), dt);
+    a.drv = cableadoFisico(a.fw.escribirPines(m, a.st), { leftOnA: true, invL: false, invR: false });
+  }
+}
+function physicsStep() {
+  if (sim.steps % CTRL_EVERY === 0) controlTick(DT * CTRL_EVERY);
+  sim.steps++; sim.t += DT;
+  const me = sim.me, op = sim.opp;
+  const P = motorParams(S.mu);
+  me.lift = 0; me.liftBonus = 0;
+  let ct = null;
+  if (op) {
+    op.lift = 0; op.liftBonus = 0;
+    if (!me.out && !op.out) ct = collide(me, op);
+    if (ct) {
+      const fm = [Math.cos(me.th), Math.sin(me.th)], fo = [Math.cos(op.th), Math.sin(op.th)];
+      const meWedges = ct.n[0] * fm[0] + ct.n[1] * fm[1] > 0.75;
+      const opWedges = op.kind === 'robot' && -(ct.n[0] * fo[0] + ct.n[1] * fo[1]) > 0.75;
+      if (meWedges && !opWedges) { op.lift = LIFT; me.liftBonus = LIFT * op.m * G / 2 * (op.kind === 'block' ? 0.5 : WHEEL_FRAC * 0.5); }
+      else if (opWedges && !meWedges) { me.lift = LIFT; op.liftBonus = LIFT * me.m * G / 2 * WHEEL_FRAC * 0.5; }
+    }
+  }
+  if (me.out) stepFalling(me, DT); else stepRobot(me, sim.drv, P, DT);
+  if (op) {
+    if (op.out) stepFalling(op, DT);
+    else if (op.kind === 'robot') stepRobot(op, sim.ai.drv, motorParams(0.85), DT);
+    else stepBlock(op, DT);
+    if (ct) sim.impact = Math.max(sim.impact, resolve(me, op, ct));
+  }
+  for (const b of [me, op]) {
+    if (!b || b.out) continue;
+    if (Math.hypot(b.x, b.y) > RING_R) { b.out = true; b.vz = 0; }
+  }
+  if (!sim.over) {
+    if (me.out && op && !op.out) endRound('opp');
+    else if (op && op.out && !me.out) endRound('me');
+    else if (me.out && !op) endRound('solo');
+    else if (me.out && op && op.out) endRound('draw');
+  }
+}
+function endRound(who) {
+  sim.over = true; sim.result = who;
+  if (who === 'me') sim.score.me++;
+  if (who === 'opp') sim.score.opp++;
+}
+
+/* =========================================================
+   6. Entrada: teclado, mando real (Gamepad API) y táctil
+   ========================================================= */
+const keys = new Set();
+const touchState = { lx: 0, ly: 0, l2: 0, r2: 0, x: false, t: false };
+let lastSource = 'Teclado', resetEdge = false, prevShare = false;
+window.addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input, select, textarea')) return;
+  const k = e.key.toLowerCase();
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+  if (k === 'r' && !e.repeat) resetEdge = true;
+  keys.add(k === ' ' ? 'space' : k);
+  lastSource = 'Teclado';
+});
+window.addEventListener('keyup', e => { const k = e.key.toLowerCase(); keys.delete(k === ' ' ? 'space' : k); });
+window.addEventListener('blur', () => keys.clear());
+
+function readGamepad() {
+  let pads = [];
+  try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) { return null; }
+  for (const gp of pads || []) {
+    if (!gp || !gp.connected || gp.axes.length < 2) continue;
+    const b = i => gp.buttons[i] || { pressed: false, value: 0 };
+    return {
+      id: gp.id, lx: gp.axes[0], ly: -gp.axes[1],
+      l2: b(6).value || (b(6).pressed ? 1 : 0), r2: b(7).value || (b(7).pressed ? 1 : 0),
+      x: b(0).pressed, t: b(3).pressed || b(9).pressed, share: b(8).pressed
+    };
+  }
+  return null;
+}
+function pickAxis(...vals) { return vals.reduce((best, v) => Math.abs(v) > Math.abs(best) ? v : best, 0); }
+function readInput() {
+  const k = n => keys.has(n);
+  const kb = {
+    ly: (k('w') || k('arrowup') ? 1 : 0) - (k('s') || k('arrowdown') ? 1 : 0),
+    lx: (k('d') || k('arrowright') ? 1 : 0) - (k('a') || k('arrowleft') ? 1 : 0),
+    r2: k('shift') ? 1 : 0, l2: k('space') ? 1 : 0, x: k('x'), t: k('t')
+  };
+  const gp = readGamepad();
+  if (gp) {
+    if (gp.share && !prevShare) resetEdge = true;
+    prevShare = gp.share;
+    if (Math.abs(gp.lx) > 0.15 || Math.abs(gp.ly) > 0.15 || gp.r2 > 0.05 || gp.l2 > 0.05 || gp.x || gp.t) lastSource = 'Mando · ' + (/054c|wireless controller|dualshock/i.test(gp.id) ? 'DS4' : 'gamepad');
+  }
+  const g = gp || { lx: 0, ly: 0, r2: 0, l2: 0, x: false, t: false };
+  const ts = touchState;
+  if (Math.abs(ts.lx) + Math.abs(ts.ly) + ts.r2 + ts.l2 > 0 || ts.x || ts.t) lastSource = 'Táctil';
+  input = {
+    conectado: true,
+    lx: limitar(pickAxis(kb.lx, g.lx, ts.lx), -1, 1),
+    ly: limitar(pickAxis(kb.ly, g.ly, ts.ly), -1, 1),
+    r2: Math.max(kb.r2, g.r2, ts.r2), l2: Math.max(kb.l2, g.l2, ts.l2),
+    cruz: kb.x || g.x || ts.x, rearmar: kb.t || g.t || ts.t
+  };
+}
+
+// Stick táctil
+(() => {
+  const base = document.getElementById('tstick'), knob = document.getElementById('tknob');
+  let id = null;
+  const move = e => {
+    const r = base.getBoundingClientRect(), R = r.width / 2 - 14;
+    let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const d = Math.hypot(dx, dy); if (d > R) { dx *= R / d; dy *= R / d; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    touchState.lx = dx / R; touchState.ly = -dy / R;
+  };
+  base.addEventListener('pointerdown', e => { id = e.pointerId; base.setPointerCapture(id); move(e); e.preventDefault(); });
+  base.addEventListener('pointermove', e => { if (e.pointerId === id) move(e); });
+  const end = e => { if (e.pointerId !== id) return; id = null; knob.style.transform = ''; touchState.lx = touchState.ly = 0; };
+  base.addEventListener('pointerup', end); base.addEventListener('pointercancel', end);
+  const hold = (elId, on, off) => {
+    const el = document.getElementById(elId);
+    el.addEventListener('pointerdown', e => { e.preventDefault(); el.setPointerCapture(e.pointerId); on(); el.classList.add('on'); });
+    const up = () => { off(); el.classList.remove('on'); };
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  };
+  hold('tL2', () => touchState.l2 = 1, () => touchState.l2 = 0);
+  hold('tR2', () => touchState.r2 = 1, () => touchState.r2 = 0);
+  hold('tX', () => touchState.x = true, () => touchState.x = false);
+  hold('tT', () => touchState.t = true, () => touchState.t = false);
+})();
+
+/* =========================================================
+   7. Escena 3D
+   ========================================================= */
+let scene3d = null;
+function initScene() {
+  const stage = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.prepend(renderer.domElement);
+  renderer.domElement.setAttribute('aria-hidden', 'true');
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 30);
+  camera.position.set(-0.52, 0.5, 0.6);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0.02, 0);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minDistance = 0.18; controls.maxDistance = 3; controls.maxPolarAngle = Math.PI * 0.48;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.65));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+  sun.position.set(0.6, 1.4, 0.5); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -0.8, right: 0.8, top: 0.8, bottom: -0.8, near: 0.2, far: 4 });
+  sun.shadow.bias = -0.0004;
+  scene.add(sun);
+
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0xc4ccd6, roughness: 0.95 });
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), floorMat);
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+  // Dohyo de mini-sumo: 77 cm, línea blanca de 2,5 cm, líneas de salida
+  const dohyo = new THREE.Mesh(new THREE.CylinderGeometry(RING_R, RING_R, RING_H, 128), new THREE.MeshStandardMaterial({ color: 0x080809, roughness: 0.85 }));
+  dohyo.position.y = RING_H / 2; dohyo.receiveShadow = true; dohyo.castShadow = true; scene.add(dohyo);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(RING_R - LINE_W, RING_R, 128), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.5 }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = RING_H + 0.0004; ring.receiveShadow = true; scene.add(ring);
+  for (const sx of [-0.055, 0.055]) {
+    const l = new THREE.Mesh(new THREE.PlaneGeometry(0.01, 0.1), new THREE.MeshStandardMaterial({ color: 0x8a5a36, roughness: 0.8 }));
+    l.rotation.x = -Math.PI / 2; l.position.set(sx, RING_H + 0.0004, 0); l.receiveShadow = true; scene.add(l);
+  }
+
+  function labelTexture(lines, bg, fg, w, h) {
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const g = cv.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle';
+    lines.forEach(([txt, size, y]) => { g.font = `600 ${size}px "IBM Plex Mono", monospace`; g.fillText(txt, w / 2, y); });
+    const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t;
+  }
+  const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; };
+
+  function buildRobot(bodyColor, pcbHex) {
+    const root = new THREE.Group(), tilt = new THREE.Group(); root.add(tilt);
+    const body = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.6, metalness: 0.05 });
+    tilt.add(box(0.072, 0.026, 0.068, body, -0.012, 0.019, 0));
+    // Cuña de acero
+    const sh = new THREE.Shape();
+    sh.moveTo(0.023, 0.0035); sh.lineTo(0.05, 0.0012); sh.lineTo(0.05, 0.0028); sh.lineTo(0.023, 0.031); sh.lineTo(0.023, 0.0035);
+    const wg = new THREE.ExtrudeGeometry(sh, { depth: 0.097, bevelEnabled: false }); wg.translate(0, 0, -0.0485);
+    const wedge = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ color: 0xc3cad3, roughness: 0.28, metalness: 0.85 }));
+    wedge.castShadow = true; tilt.add(wedge);
+    // Ruedas (izquierda = -Z en la escena)
+    const tire = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.9 });
+    const hubM = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.5 });
+    const spins = {};
+    for (const [side, z] of [['L', -TRACK / 2], ['R', TRACK / 2]]) {
+      const holder = new THREE.Group(); holder.position.set(WHEEL_X, WHEEL_R, z);
+      const spin = new THREE.Group(); holder.add(spin);
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(WHEEL_R, WHEEL_R, 0.011, 32), tire); t.rotation.x = Math.PI / 2; t.castShadow = true; spin.add(t);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.0095, 0.0095, 0.0116, 20), hubM); hub.rotation.x = Math.PI / 2; spin.add(hub);
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.019, 0.0032, 0.0118), new THREE.MeshStandardMaterial({ color: 0xd9691f, roughness: 0.5 })); spin.add(spoke);
+      // motor N20
+      const mot = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.01, 0.024), new THREE.MeshStandardMaterial({ color: 0xb8bcc2, metalness: 0.7, roughness: 0.35 }));
+      mot.position.set(WHEEL_X, 0.016, z * 0.55); tilt.add(mot);
+      tilt.add(holder); spins[side] = spin;
+    }
+    // PCB CUyLAB V3.1 con ESP32, TB6612FNG y MP2315
+    const pcbTex = labelTexture([['CUyLAB V3.1', 26, 34], ['TB6612FNG · MP2315', 14, 214]], pcbHex, '#f4f4f4', 256, 240);
+    const pcb = box(0.046, 0.0016, 0.064, new THREE.MeshStandardMaterial({ color: 0xffffff, map: pcbTex, roughness: 0.55 }), -0.002, 0.0328, 0);
+    pcb.material.map.center.set(0.5, 0.5); pcb.material.map.rotation = Math.PI / 2;
+    tilt.add(pcb);
+    tilt.add(box(0.026, 0.0034, 0.018, new THREE.MeshStandardMaterial({ color: 0xbfc4ca, metalness: 0.8, roughness: 0.3 }), -0.002, 0.0353, -0.008));
+    tilt.add(box(0.006, 0.0034, 0.018, new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.6 }), 0.0155, 0.0353, -0.008));
+    tilt.add(box(0.007, 0.0016, 0.009, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 }), -0.012, 0.0345, 0.018));
+    // Batería 2S 500 mAh
+    const batTex = labelTexture([['LiPo 2S', 30, 40], ['500 mAh · 20C', 20, 84]], '#28344a', '#e9edf2', 256, 128);
+    tilt.add(box(0.02, 0.013, 0.05, new THREE.MeshStandardMaterial({ color: 0xffffff, map: batTex, roughness: 0.5 }), -0.037, 0.0385, 0));
+    // LED de estado (STBY)
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.0026, 12, 8), new THREE.MeshStandardMaterial({ color: 0x330000, emissive: 0xff2020, emissiveIntensity: 1 }));
+    led.position.set(0.017, 0.0345, 0.024); tilt.add(led);
+    root.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    return { root, tilt, spins, led };
+  }
+  function buildBlock() {
+    const root = new THREE.Group(), tilt = new THREE.Group(); root.add(tilt);
+    const tex = labelTexture([['500 g', 64, 128]], '#8c2f22', '#f6e6e0', 256, 256);
+    const side = new THREE.MeshStandardMaterial({ color: 0x8c2f22, roughness: 0.7 });
+    const top = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tex, roughness: 0.7 });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.045, 0.1), [side, side, top, side, side, side]);
+    m.position.y = 0.0225; m.castShadow = true; m.receiveShadow = true; tilt.add(m);
+    return { root, tilt, spins: null, led: null };
+  }
+
+  const meModel = buildRobot(0x2b3442, '#1e5f9e');
+  scene.add(meModel.root);
+  let oppModel = null;
+  function syncOpponent() {
+    if (oppModel) { scene.remove(oppModel.root); oppModel = null; }
+    if (!sim.opp) return;
+    oppModel = sim.opp.kind === 'block' ? buildBlock() : buildRobot(0x5a1c1c, '#7a2a2a');
+    scene.add(oppModel.root);
+  }
+
+  function place(model, b) {
+    model.root.position.set(b.x, b.z, -b.y);
+    model.root.rotation.y = b.th;
+    // inclinación: levantado por la cuña o cayendo del dohyo
+    const target = b.out ? -b.tilt : (b.lift > 0 ? 0.07 : 0);
+    model.tilt.rotation.z += (target - model.tilt.rotation.z) * (b.out ? 1 : 0.25);
+    if (model.spins && b.wheels) { model.spins.L.rotation.z = -b.wheels[0].ang; model.spins.R.rotation.z = -b.wheels[1].ang; }
+  }
+
+  function applyTheme() {
+    const cs = getComputedStyle(document.documentElement);
+    const bg = cs.getPropertyValue('--scene-bg').trim() || '#dde3ea';
+    scene.background = new THREE.Color(bg);
+    scene.fog = new THREE.Fog(new THREE.Color(bg), 2.2, 6);
+    floorMat.color.set(cs.getPropertyValue('--scene-floor').trim() || '#c4ccd6');
+  }
+  applyTheme();
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) { /* navegador antiguo */ }
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  let camMode = 'orbit';
+  function setCam(mode) {
+    camMode = mode; controls.enabled = mode === 'orbit';
+    if (mode === 'orbit') { camera.position.set(-0.52, 0.5, 0.6); controls.target.set(0, 0.02, 0); }
+  }
+  const camPos = new THREE.Vector3(), look = new THREE.Vector3();
+  function render() {
+    place(meModel, sim.me);
+    if (oppModel && sim.opp) place(oppModel, sim.opp);
+    const armed = sim.pins && sim.pins.STBY;
+    meModel.led.material.emissive.set(sim.mode === 'freno' ? 0xffffff : armed ? 0x20ff60 : 0xff2020);
+    if (oppModel && oppModel.led) oppModel.led.material.emissive.set(0xff9a20);
+    const b = sim.me, c = Math.cos(b.th), s = Math.sin(b.th);
+    if (camMode === 'chase') {
+      camPos.set(b.x - c * 0.34, Math.max(b.z, 0) + 0.19, -(b.y - s * 0.34));
+      camera.position.lerp(camPos, 0.12);
+      look.set(b.x + c * 0.12, Math.max(b.z, 0) + 0.02, -(b.y + s * 0.12));
+      camera.lookAt(look);
+    } else if (camMode === 'top') {
+      const fit = 0.47 / Math.tan(camera.fov * Math.PI / 360) / Math.min(1, camera.aspect);
+      camera.position.lerp(camPos.set(0, fit, 0.0001), 0.2); camera.lookAt(0, 0, 0);
+    } else controls.update();
+    renderer.render(scene, camera);
+  }
+  return { render, setCam, syncOpponent, resize };
+}
+
+/* =========================================================
+   8. Panel
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+
+// Pestañas
+const tabs = ['control', 'ajustes', 'codigo', 'montaje'];
+function selectTab(name) {
+  tabs.forEach(t => { $('tab-' + t).setAttribute('aria-selected', String(t === name)); $('p-' + t).hidden = t !== name; });
+  if (name === 'codigo') renderCode();
+}
+tabs.forEach(t => $('tab-' + t).addEventListener('click', () => selectTab(t)));
+
+// Validación de GPIO del ESP32-WROOM-32
+const EXISTS = new Set([...Array(20).keys(), 21, 22, 23, 25, 26, 27, 32, 33, 34, 35, 36, 37, 38, 39]);
+function checkPin(raw) {
+  const v = String(raw).trim();
+  if (v === '') return { lvl: 'empty', msg: 'Por identificar' };
+  if (!/^\d+$/.test(v)) return { lvl: 'err', msg: 'Escribe solo el número del GPIO' };
+  const n = +v;
+  if (!EXISTS.has(n)) return { lvl: 'err', msg: 'Ese GPIO no existe en el ESP32-WROOM-32' };
+  if (n >= 6 && n <= 11) return { lvl: 'err', msg: 'Reservado para la memoria flash' };
+  if (n >= 34) return { lvl: 'err', msg: 'Solo entrada: no puede mover el TB6612FNG' };
+  if ([0, 2, 5, 12, 15].includes(n)) return { lvl: 'warn', msg: 'Pin de arranque: puede impedir la carga o dar un pulso al encender' };
+  if (n === 1 || n === 3) return { lvl: 'warn', msg: 'Es el puerto serie USB (TX/RX)' };
+  return { lvl: 'ok', msg: 'Salida válida' };
+}
+function pinReport() {
+  const res = {}, seen = {};
+  for (const p of PIN_NAMES) { res[p] = checkPin(S.pins[p]); const v = String(S.pins[p]).trim(); if (v !== '' && res[p].lvl !== 'err') (seen[v] = seen[v] || []).push(p); }
+  for (const v in seen) if (seen[v].length > 1) seen[v].forEach(p => res[p] = { lvl: 'err', msg: 'Repetido con ' + seen[v].filter(q => q !== p).join(', ') });
+  const missing = PIN_NAMES.filter(p => res[p].lvl === 'empty').length, errors = PIN_NAMES.filter(p => res[p].lvl === 'err').length;
+  return { res, missing, errors, ready: missing === 0 && errors === 0 };
+}
+function pinValueForCode(p, rep) { return rep.res[p].lvl === 'ok' || rep.res[p].lvl === 'warn' ? String(+S.pins[p]) : '-1'; }
+
+function buildPinsGrid() {
+  const grid = $('pinsGrid'); grid.innerHTML = '';
+  for (const p of PIN_NAMES) {
+    const f = document.createElement('div'); f.className = 'field'; f.id = 'f-' + p;
+    f.innerHTML = `<label for="pin-${p}">${p}</label><input type="text" inputmode="numeric" id="pin-${p}" placeholder="GPIO" autocomplete="off"><span class="msg"></span>`;
+    grid.appendChild(f);
+    const inp = f.querySelector('input'); inp.value = S.pins[p];
+    inp.addEventListener('input', () => { S.pins[p] = inp.value.trim(); onSettings(); });
+  }
+}
+function refreshPins() {
+  const rep = pinReport();
+  for (const p of PIN_NAMES) {
+    const f = $('f-' + p), r = rep.res[p];
+    f.className = 'field ' + (r.lvl === 'empty' ? '' : r.lvl);
+    f.querySelector('.msg').textContent = r.msg;
+  }
+  const st = $('pinsStatus');
+  if (rep.ready) { st.className = 'status good'; st.textContent = 'Los 7 GPIO son válidos. El firmware generado ya puede mover los motores.'; }
+  else { st.className = 'status bad'; st.textContent = (rep.missing ? `Faltan ${rep.missing} GPIO` : '') + (rep.missing && rep.errors ? ' y ' : '') + (rep.errors ? `${rep.errors} con error` : '') + '. El firmware no activará ninguna salida hasta corregirlo; el simulador sigue funcionando.'; }
+  return rep;
+}
+
+// Controles de ajustes
+const RANGES = [
+  ['sNormal', 'normal', v => v + ' %'], ['sAttack', 'attack', v => v + ' %'], ['sRamp', 'ramp', v => fmt(v, 1) + '/s'],
+  ['sTurn', 'turn', v => v + ' %'], ['sExpo', 'expo', v => v + ' %'], ['sDead', 'dead', v => v + ' %'], ['sBrake', 'brake', v => v + ' %'],
+  ['sVbat', 'vbat', v => fmt(v, 1) + ' V'], ['sMu', 'mu', v => fmt(v, 2)]
+];
+const CHECKS = [['cLeftOnA', 'leftOnA'], ['cInvL', 'invL'], ['cInvR', 'invR'], ['pLeftOnA', 'pLeftOnA'], ['pInvL', 'pInvL'], ['pInvR', 'pInvR']];
+const NUMBERS = [['sRpm', 'rpm', 50, 3000], ['sStall', 'stall', 0.1, 10], ['sIstall', 'istall', 0.1, 6], ['sMass', 'mass', 100, 1000]];
+function bindSettings() {
+  for (const [id, key, f] of RANGES) {
+    const el = $(id);
+    el.addEventListener('input', () => {
+      S[key] = +el.value;
+      if (key === 'normal' && S.attack < S.normal) S.attack = S.normal;
+      if (key === 'attack' && S.attack < S.normal) S.normal = S.attack;
+      onSettings();
+    });
+  }
+  for (const [id, key] of CHECKS) $(id).addEventListener('change', () => { S[key] = $(id).checked; onSettings(); });
+  for (const [id, key, lo, hi] of NUMBERS) $(id).addEventListener('change', () => {
+    const v = parseFloat($(id).value); S[key] = isFinite(v) ? limitar(v, lo, hi) : DEFAULTS[key]; $(id).value = S[key];
+    if (key === 'mass') resetRound();
+    onSettings();
+  });
+  $('sMac').addEventListener('input', () => { S.mac = $('sMac').value.trim(); onSettings(); });
+  $('sOpp').addEventListener('change', () => { S.opp = $('sOpp').value; resetRound(); onSettings(); });
+  $('btnExamplePins').addEventListener('click', () => { for (const p of PIN_NAMES) { S.pins[p] = String(EXAMPLE_PINS[p]); $('pin-' + p).value = S.pins[p]; } onSettings(); });
+  $('btnDefaults').addEventListener('click', () => {
+    const keepCam = S.cam, keepTouch = S.touch;
+    S = JSON.parse(JSON.stringify(DEFAULTS)); S.cam = keepCam; S.touch = keepTouch;
+    syncSettingsUI(); buildPinsGrid(); resetRound(); onSettings();
+  });
+}
+function syncSettingsUI() {
+  for (const [id, key, f] of RANGES) { $(id).value = S[key]; $(id.replace(/^s/, 'o')).textContent = f(S[key]); }
+  for (const [id, key] of CHECKS) $(id).checked = !!S[key];
+  for (const [id, key] of NUMBERS) $(id).value = S[key];
+  $('sMac').value = S.mac; $('sOpp').value = S.opp;
+}
+const MAC_RE = /^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i;
+function onSettings() {
+  FW = makeFw(fwConfig());
+  for (const [id, key, f] of RANGES) { $(id).value = S[key]; $(id.replace(/^s/, 'o')).textContent = f(S[key]); }
+  const vn = S.vbat * S.normal / 100, va = S.vbat * S.attack / 100;
+  $('voltNote').innerHTML = `Con ${fmt(S.vbat, 1).replace('.', ',')} V de batería: <b>${fmt(vn, 1).replace('.', ',')} V</b> medios en el motor en modo normal y <b>${fmt(va, 1).replace('.', ',')} V</b> en ataque.` + (va > 6.3 ? ' Por encima de los 6 V nominales: comprueba la temperatura de los N20.' : '');
+  $('motorNote').textContent = `${fmt(S.vbat, 1)} V · ${S.rpm} RPM a 6 V`;
+  const macOk = MAC_RE.test(S.mac);
+  $('macMsg').textContent = macOk ? 'Formato correcto' : 'Formato: 6 pares hexadecimales separados por «:»';
+  $('macMsg').parentElement.className = 'field ' + (macOk ? 'ok' : 'err');
+  refreshPins();
+  if (!$('p-codigo').hidden) renderCode();
+  saveSettings();
+}
+
+// Generación del sketch
+const ff = v => { const s = (Math.round(v * 1000) / 1000).toString(); return (s.includes('.') ? s : s + '.0') + 'f'; };
+function generateFirmware() {
+  const rep = pinReport();
+  const tpl = $('tplFirmware').textContent;
+  const vals = {
+    MAC: MAC_RE.test(S.mac) ? S.mac.toUpperCase() : '01:02:03:04:05:06',
+    IZQ_EN_A: String(!!S.leftOnA), INV_IZQ: String(!!S.invL), INV_DER: String(!!S.invR),
+    NORMAL: ff(S.normal / 100), ATTACK: ff(S.attack / 100), RAMP: ff(S.ramp), TURN: ff(S.turn / 100),
+    EXPO: ff(S.expo / 100), DEADZONE: ff(S.dead / 100), BRAKE: ff(S.brake / 100)
+  };
+  for (const p of PIN_NAMES) vals[p] = pinValueForCode(p, rep);
+  return { code: tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => k in vals ? vals[k] : m), rep };
+}
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function highlight(src) {
+  let inBlock = false;
+  return src.split('\n').map(line => {
+    if (inBlock || /^\s*\/\*/.test(line)) { if (line.includes('*/')) inBlock = false; else inBlock = true; return `<span class="c-com">${esc(line)}</span>`; }
+    let code = line, com = '', inS = false;
+    for (let i = 0; i < line.length - 1; i++) {
+      if (line[i] === '"') inS = !inS;
+      if (!inS && line[i] === '/' && line[i + 1] === '/') { code = line.slice(0, i); com = line.slice(i); break; }
+    }
+    let h;
+    if (/^\s*#/.test(code)) h = `<span class="c-pp">${esc(code)}</span>`;
+    else h = esc(code).replace(/("[^"]*")/g, '<span class="c-st">$1</span>')
+      .replace(/\b(const|float|int|bool|void|return|if|else|struct|enum|switch|case|default|break|for|uint32_t|uint8_t|true|false|volatile|char)\b(?![^<]*<\/span>)/g, '<span class="c-kw">$1</span>');
+    return h + (com ? `<span class="c-com">${esc(com)}</span>` : '');
+  }).join('\n');
+}
+function renderCode() {
+  const { code, rep } = generateFirmware();
+  $('codePre').innerHTML = highlight(code);
+  const st = $('codeStatus');
+  if (rep.ready) { st.className = 'status good'; st.textContent = 'Listo para subir: los 7 GPIO están completos.'; }
+  else { st.className = 'status bad'; st.textContent = `Con GPIO en -1 el sketch compila y conecta el mando, pero no mueve los motores. Complétalos en Ajustes.`; }
+}
+$('btnCopy').addEventListener('click', () => {
+  const { code } = generateFirmware(), btn = $('btnCopy');
+  const done = ok => { btn.textContent = ok ? 'Copiado' : 'Selecciona y copia'; setTimeout(() => btn.textContent = 'Copiar código', 1800); };
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents($('codePre')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); done(false); };
+  try { navigator.clipboard.writeText(code).then(() => done(true), fallback); } catch (e) { fallback(); }
+});
+
+// Cámara, ronda, táctil, pérdida de señal
+function setCamUI(mode) {
+  S.cam = mode; saveSettings();
+  [['camOrbit', 'orbit'], ['camChase', 'chase'], ['camTop', 'top']].forEach(([id, m]) => $(id).setAttribute('aria-pressed', String(m === mode)));
+  scene3d && scene3d.setCam(mode);
+}
+$('camOrbit').addEventListener('click', () => setCamUI('orbit'));
+$('camChase').addEventListener('click', () => setCamUI('chase'));
+$('camTop').addEventListener('click', () => setCamUI('top'));
+$('btnRound').addEventListener('click', () => resetRound());
+const coarse = (() => { try { return matchMedia('(hover: none)').matches; } catch (e) { return false; } })();
+function setTouch(on) {
+  S.touch = on; $('touch').hidden = !on; $('btnTouch').setAttribute('aria-pressed', String(on));
+  document.body.classList.toggle('has-touch', on); saveSettings();
+}
+$('btnTouch').addEventListener('click', () => setTouch(!(S.touch ?? coarse)));
+$('btnLoss').addEventListener('click', () => { sim.lossOfSignal = !sim.lossOfSignal; $('btnLoss').setAttribute('aria-pressed', String(sim.lossOfSignal)); $('btnLoss').textContent = sim.lossOfSignal ? 'Señal cortada' : 'Cortar señal'; });
+
+// Tabla de pines y tarjetas de motor
+const pinRows = {};
+function buildPinTable() {
+  const body = $('pinBody');
+  for (const p of ['STBY', 'PWMA', 'AIN1', 'AIN2', 'PWMB', 'BIN1', 'BIN2']) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="mono">${p}</td><td class="mono" data-g></td><td data-v></td>`;
+    body.appendChild(tr); pinRows[p] = { g: tr.querySelector('[data-g]'), v: tr.querySelector('[data-v]'), pwm: p.startsWith('PWM') };
+    if (pinRows[p].pwm) pinRows[p].v.innerHTML = '<div class="pwmcell"><div class="bar"><span></span></div><span class="mono">0 %</span></div>';
+    else pinRows[p].v.innerHTML = '<span class="lvl">LOW</span>';
+  }
+}
+function motorCard(el, title) {
+  el.innerHTML = `<h3>${title} <span class="tag" data-tag>Libre</span></h3>
+    <div class="kv"><span>Tensión media</span><span data-v>0.00 V</span></div>
+    <div class="kv"><span>Rueda</span><span data-rpm>0 RPM</span></div>
+    <div class="kv"><span>Corriente</span><span data-i>0.00 A</span></div>
+    <div class="bar amp" data-bar><span></span><i class="tick" style="left:${1.2 / 4 * 100}%"></i><i class="tick" style="left:${3.2 / 4 * 100}%"></i></div>
+    <div class="kv"><span>Tracción</span><span data-f>0.0 / 0.0 N</span></div>`;
+  return { tag: el.querySelector('[data-tag]'), v: el.querySelector('[data-v]'), rpm: el.querySelector('[data-rpm]'), i: el.querySelector('[data-i]'), bar: el.querySelector('[data-bar]'), f: el.querySelector('[data-f]') };
+}
+let cards = null;
+const MODE_TXT = { desconectado: 'Sin señal', parada: 'Parada', freno: 'Freno', normal: 'Normal', ataque: 'Ataque' };
+const LIGHT = { parada: '#ff0000', freno: '#ffffff', ataque: '#ff5000', normal: '#003cff', desconectado: '#3a3a3a' };
+
+function updatePanel() {
+  const m = sim.mode;
+  $('modeChip').className = 'chip m-' + m; $('modeTxt').textContent = MODE_TXT[m];
+  $('srcChip').textContent = lastSource;
+  // DS4
+  const dz = S.dead / 100;
+  $('dzRing').style.width = $('dzRing').style.height = (dz * 80 + 2) + 'px';
+  $('stickDot').style.transform = `translate(${input.lx * 38}px, ${-input.ly * 38}px)`;
+  $('barL2').style.width = input.l2 * 100 + '%'; $('valL2').textContent = Math.round(input.l2 * 255);
+  $('barR2').style.width = input.r2 * 100 + '%'; $('valR2').textContent = Math.round(input.r2 * 255);
+  $('pbX').classList.toggle('on', input.cruz); $('pbT').classList.toggle('on', input.rearmar);
+  const lb = $('lightbar'); lb.style.background = LIGHT[m]; lb.style.color = LIGHT[m];
+  const conn = !sim.lossOfSignal;
+  $('connTag').className = 'tag ' + (conn ? 'good' : 'bad'); $('connTag').textContent = conn ? 'Conectado' : 'Sin señal';
+  // Pines
+  const pins = sim.pins || {};
+  for (const p in pinRows) {
+    const row = pinRows[p], g = String(S.pins[p]).trim();
+    row.g.textContent = g === '' ? '—' : 'GPIO ' + g;
+    if (row.pwm) {
+      const d = pins[p] || 0; row.v.querySelector('.bar > span').style.width = d / 255 * 100 + '%';
+      row.v.querySelector('.pwmcell > .mono').textContent = Math.round(d / 255 * 100) + ' %';
+    } else {
+      const hi = !!pins[p], el = row.v.firstChild; el.textContent = hi ? 'HIGH' : 'LOW'; el.classList.toggle('hi', hi);
+    }
+  }
+  const chMode = ch => { const d = canalDriver(pins.STBY, pins[ch + 'IN1'], pins[ch + 'IN2'], pins['PWM' + ch]); return d.mode === 'drive' ? (d.frac > 0 ? 'avance' : 'atrás') : d.mode === 'brake' ? 'freno' : 'libre'; };
+  $('drvMode').textContent = pins.STBY ? `A: ${chMode('A')} · B: ${chMode('B')}` : 'STBY bajo · salidas apagadas';
+  // Motores
+  const me = sim.me, drv = sim.drv || { L: { mode: 'coast' }, R: { mode: 'coast' } };
+  [['L', 0, cards.L], ['R', 1, cards.R]].forEach(([side, i, c]) => {
+    const wh = me.wheels[i], d = drv[side];
+    const rpm = wh.om * 60 / (2 * Math.PI), cur = Math.abs(wh.cur);
+    c.v.textContent = fmt(wh.veff) + ' V'; c.rpm.textContent = Math.round(rpm) + ' RPM'; c.i.textContent = fmt(cur) + ' A';
+    c.bar.querySelector('span').style.width = Math.min(100, cur / 4 * 100) + '%';
+    c.bar.className = 'bar amp' + (cur > 1.2 ? ' hot' : '');
+    c.f.textContent = `${fmt(Math.abs(wh.Fl || 0), 1)} / ${fmt(wh.Fmax || 0, 1)} N`;
+    let tag = 'Libre', cls = '';
+    if (d.mode === 'brake') { tag = 'Freno'; }
+    else if (d.mode === 'drive') { tag = d.frac > 0 ? 'Avance' : 'Atrás'; cls = 'good'; }
+    if (Math.abs(wh.slip) > 0.08 && !me.out) { tag = 'Patina'; cls = 'warn'; }
+    if (cur > 3.2) { tag = 'Pico > 3,2 A'; cls = 'bad'; }
+    c.tag.className = 'tag ' + cls; c.tag.textContent = tag;
+  });
+  const I = me.wheels[0].cur, I2 = me.wheels[1].cur, Itot = Math.abs(I) + Math.abs(I2);
+  $('bV').textContent = fmt(me.vb); $('bI').textContent = fmt(Itot); $('bP').textContent = fmt(Math.abs(me.wheels[0].veff * I) + Math.abs(me.wheels[1].veff * I2), 1);
+  $('spd').textContent = fmt(Math.hypot(me.vx, me.vy));
+  $('scoreMe').textContent = sim.score.me; $('scoreOpp').textContent = sim.score.opp;
+  $('scoreBox').hidden = !sim.opp && sim.score.me + sim.score.opp === 0;
+  // Aviso central
+  let t = '', p = '';
+  if (sim.over) {
+    if (sim.result === 'me') { t = '¡Rival fuera!'; p = 'Punto para ti. Pulsa <kbd>R</kbd> o SHARE para otra ronda.'; }
+    else if (sim.result === 'opp') { t = 'Has caído'; p = 'Punto para el rival. Pulsa <kbd>R</kbd> o SHARE para otra ronda.'; }
+    else if (sim.result === 'draw') { t = 'Caen los dos'; p = 'Ronda nula. Pulsa <kbd>R</kbd> para repetir.'; }
+    else { t = 'Fuera del dohyo'; p = 'Pulsa <kbd>R</kbd> o SHARE para volver al centro.'; }
+  } else if (m === 'desconectado') { t = 'Mando desconectado'; p = 'El firmware puso STBY a LOW. Al recuperar la señal hay que rearmar con △.'; }
+  else if (m === 'parada') { t = 'Robot en parada'; p = 'Pulsa <kbd>T</kbd> o △ con el stick centrado y R2 suelto para armarlo.'; }
+  $('banner').hidden = !t;
+  if (t) { $('bannerT').textContent = t; $('bannerP').innerHTML = p; }
+}
+
+/* =========================================================
+   9. Arranque y bucle principal
+   ========================================================= */
+buildPinsGrid(); buildPinTable();
+cards = { L: motorCard($('mcL'), 'Izquierdo'), R: motorCard($('mcR'), 'Derecho') };
+syncSettingsUI(); bindSettings();
+resetRound(); onSettings();
+controlTick(0.01);
+setTouch(S.touch ?? coarse);
+
+if (!window.THREE || !THREE.OrbitControls) {
+  $('banner').hidden = false; $('bannerT').textContent = 'No se pudo cargar el motor 3D';
+  $('bannerP').textContent = 'Comprueba la conexión a internet y recarga la página. El panel y el código siguen disponibles.';
+  return;
+}
+try { scene3d = initScene(); } catch (e) {
+  $('banner').hidden = false; $('bannerT').textContent = 'WebGL no disponible';
+  $('bannerP').textContent = 'Este navegador no puede dibujar la escena 3D. El panel y el código siguen disponibles.';
+  return;
+}
+scene3d.syncOpponent();
+setCamUI(S.cam || 'orbit');
+
+let last = performance.now(), acc = 0, uiT = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = (now - last) / 1000; last = now;
+  if (dt > 0.05) dt = 0.05;
+  readInput();
+  if (resetEdge) { resetEdge = false; resetRound(); }
+  acc += dt;
+  while (acc >= DT) { physicsStep(); acc -= DT; }
+  scene3d.render();
+  uiT += dt;
+  if (uiT > 0.066) { uiT = 0; updatePanel(); }
+}
+updatePanel();
+requestAnimationFrame(frame);
+})();
+</script>
