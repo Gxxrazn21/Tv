@@ -9,7 +9,7 @@ COPY openfoot ./openfoot
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY data ./data
-RUN pip install --no-cache-dir ".[postgres]"
+RUN pip install --no-cache-dir .
 
 USER openfoot
 EXPOSE 8000

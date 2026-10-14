@@ -44,7 +44,7 @@ Revisa los términos vigentes de cada fuente antes de publicar (ver `docs/invest
 | uvicorn | 0.54.0 | BSD-3-Clause |
 | RapidFuzz | 3.14.6 | MIT |
 | PyYAML | 6.0.3 | MIT |
-| psycopg (extra `postgres`) | 3.3.6 | **LGPL-3.0-only**: se usa como librería sin modificar, lo que es compatible con distribuir OpenFoot bajo Apache-2.0. Si se redistribuye una imagen con psycopg, hay que incluir su licencia. |
+| psycopg | 3.3.6 | **LGPL-3.0-only**: se usa como librería sin modificar, lo que es compatible con distribuir OpenFoot bajo Apache-2.0. Si se redistribuye una imagen con psycopg, hay que incluir su licencia. |
 | pytest, ruff, pip-audit (solo desarrollo) | — | MIT / MIT / Apache-2.0 |
 
 ### App (Dart/Flutter)

@@ -44,7 +44,7 @@ docker-compose.yml Despliegue autoalojado (PostgreSQL + API)
 ```bash
 cd backend
 python3 -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"                 # añade ",postgres" para usar PostgreSQL
+pip install -e ".[dev]"
 cp ../.env.example .env                 # y rellena OPENFOOT_FOOTBALL_DATA_TOKEN (gratis, con registro)
 openfoot init-db                        # migraciones
 openfoot load-catalog data/catalog.yaml # competiciones, proveedores y derechos
