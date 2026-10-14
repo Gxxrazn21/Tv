@@ -1,9 +1,11 @@
+import os
 from collections.abc import Iterator
 from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy.types import TypeDecorator
 
 from openfoot.config import get_settings
@@ -17,6 +19,12 @@ def make_engine(url: str) -> Engine:
     kwargs: dict = {"future": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
+    elif os.environ.get("VERCEL"):
+        # Funciones efímeras: no se mantienen conexiones abiertas entre invocaciones, y sin
+        # sentencias preparadas automáticas (compatibles con poolers en modo transacción).
+        kwargs["poolclass"] = NullPool
+        if url.startswith("postgresql+psycopg"):
+            kwargs["connect_args"] = {"prepare_threshold": None}
     engine = create_engine(url, **kwargs)
     if url.startswith("sqlite"):
 

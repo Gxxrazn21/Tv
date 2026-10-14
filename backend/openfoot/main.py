@@ -1,14 +1,15 @@
+import hmac
 import logging
 import threading
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from openfoot.adapters.registry import build_sources
-from openfoot.api.routes import router
+from openfoot.api.routes import SessionDep, ensure_ready, router
 from openfoot.config import Settings, get_settings
 from openfoot.db import session_factory
 
@@ -113,6 +114,48 @@ def create_app(settings: Settings | None = None, sources=None) -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "ok"}
+
+    @app.get("/internal/cron/daily", include_in_schema=False, dependencies=[Depends(ensure_ready)])
+    def cron_daily(request: Request, session: SessionDep):
+        """Tarea diaria (Vercel Cron): calendario completo, metadatos y parte de los goleadores.
+
+        Solo responde con Authorization: Bearer <CRON_SECRET>. Sin secreto configurado, 404.
+        """
+        from datetime import UTC, datetime
+
+        from openfoot.services.sync import claimed_codes, sync_all, sync_scorers
+
+        secret = settings.cron_secret.get_secret_value() if settings.cron_secret else ""
+        if not secret:
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        given = request.headers.get("authorization", "")
+        if not hmac.compare_digest(given.encode(), f"Bearer {secret}".encode()):
+            return JSONResponse({"detail": "No autorizado"}, status_code=401)
+        sources = app.state.sources
+        runs = sync_all(
+            session,
+            sources,
+            days_back=settings.sync_days_back,
+            days_ahead=settings.sync_days_ahead,
+            include_meta=True,
+        )
+        # Goleadores por turnos (4 competiciones al día) para no superar el límite por minuto
+        # de la API ni la duración máxima de la función.
+        codes = sorted({c for cs in claimed_codes(sources).values() for c in cs})
+        today = datetime.now(UTC).timetuple().tm_yday
+        batch = (
+            {codes[(today * 4 + i) % len(codes)] for i in range(min(4, len(codes)))}
+            if codes
+            else set()
+        )
+        players = sync_scorers(session, sources, only=batch)
+        return {
+            "runs": [
+                {"source": r.source, "ok": r.ok, "matches": r.matches_upserted, "detail": r.detail}
+                for r in runs
+            ],
+            "scorers": {"competitions": sorted(batch), "players": players},
+        }
 
     app.include_router(router)
     return app

@@ -18,13 +18,28 @@ from openfoot.models import (
     OfficialDirectory,
     SyncRun,
 )
+from openfoot.services.runtime import bootstrap, sync_if_stale
 from openfoot.services.search import parse_date_query, search
 from openfoot.services.watch import resolve_watch
 
-router = APIRouter(prefix="/v1")
-
 SessionDep = Annotated[Session, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+
+def ensure_ready(session: SessionDep, settings: SettingsDep) -> None:
+    """Con OPENFOOT_AUTO_BOOTSTRAP: migra y carga el catálogo en el primer uso."""
+    if settings.auto_bootstrap:
+        bootstrap(session.get_bind(), settings)
+
+
+def ensure_fresh(request: Request, session: SessionDep, settings: SettingsDep) -> None:
+    """Con OPENFOOT_SYNC_ON_REQUEST: sincroniza si los datos están desactualizados."""
+    if settings.sync_on_request:
+        sync_if_stale(session.get_bind(), settings, request.app.state.sources)
+
+
+router = APIRouter(prefix="/v1", dependencies=[Depends(ensure_ready)])
+FreshDep = Depends(ensure_fresh)
 
 DISCLAIMER = (
     "OpenFoot no emite ni redistribuye señales. Enlaza a páginas de proveedores cuya relación "
@@ -144,7 +159,7 @@ def list_competitions(
     ]
 
 
-@router.get("/matches", response_model=list[s.MatchOut])
+@router.get("/matches", response_model=list[s.MatchOut], dependencies=[FreshDep])
 def list_matches(
     session: SessionDep,
     settings: SettingsDep,
@@ -182,7 +197,7 @@ def list_matches(
     return [match_out(m, settings) for m in session.scalars(q).unique()]
 
 
-@router.get("/teams/{team_id}/matches", response_model=list[s.MatchOut])
+@router.get("/teams/{team_id}/matches", response_model=list[s.MatchOut], dependencies=[FreshDep])
 def team_matches(
     team_id: int,
     session: SessionDep,
@@ -208,7 +223,7 @@ def _get_match(session: Session, match_id: int) -> Match:
     return m
 
 
-@router.get("/matches/{match_id}", response_model=s.MatchDetailOut)
+@router.get("/matches/{match_id}", response_model=s.MatchDetailOut, dependencies=[FreshDep])
 def get_match(match_id: int, session: SessionDep, settings: SettingsDep):
     m = _get_match(session, match_id)
     base = match_out(m, settings).model_dump()

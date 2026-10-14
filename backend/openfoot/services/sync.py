@@ -222,11 +222,13 @@ def sync_all(
     return runs
 
 
-def sync_scorers(session: Session, sources: list[DataSource]) -> int:
+def sync_scorers(session: Session, sources: list[DataSource], only: set[str] | None = None) -> int:
     plan = claimed_codes(sources)
     total = 0
     for src in sources:
         for code in plan.get(src.name, []):
+            if only is not None and code not in only:
+                continue
             try:
                 players = src.fetch_scorers(code)
             except SourceError as exc:

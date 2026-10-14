@@ -9,7 +9,9 @@
 
 ## API pública
 - Solo lectura. **No hay endpoints de administración**: la administración se hace por CLI con acceso
-  al servidor.
+  al servidor. La única excepción es `/internal/cron/daily` (tarea diaria de Vercel), que solo lanza
+  una sincronización idempotente. Está **desactivado** (404) si no hay `CRON_SECRET` y exige
+  `Authorization: Bearer <CRON_SECRET>`, comparado en tiempo constante.
 - Validación estricta de entradas: zonas horarias IANA, códigos de país ISO alfa-2, listas de códigos
   alfanuméricos, rangos de fechas de 31 días como máximo y paginación acotada (`limit` ≤ 500).
 - Todas las consultas usan el ORM con parámetros enlazados (sin SQL concatenado) y se prueban con

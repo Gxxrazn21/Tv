@@ -1,0 +1,10 @@
+# Dependencias de ejecución para Vercel (mismas que pyproject.toml + driver de PostgreSQL).
+fastapi>=0.140,<1
+uvicorn>=0.50
+sqlalchemy>=2.0,<3
+alembic>=1.16
+httpx>=0.28,<1
+pydantic-settings>=2.10
+rapidfuzz>=3.13
+pyyaml>=6
+psycopg[binary]>=3.2

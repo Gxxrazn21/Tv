@@ -70,6 +70,11 @@ export POSTGRES_PASSWORD='una-contraseña-larga'
 docker compose up --build      # API en http://127.0.0.1:8000 (pon un proxy con TLS delante)
 ```
 
+### En la nube con Vercel (sin ordenador encendido)
+Guía paso a paso en [docs/despliegue-vercel.md](docs/despliegue-vercel.md): Vercel + PostgreSQL de
+Neon (planes gratuitos), con preparación automática de la base, sincronización bajo demanda y una
+tarea diaria.
+
 ### App
 ```bash
 cd mobile
@@ -91,6 +96,7 @@ APK: ver [docs/compilar-apk.md](docs/compilar-apk.md). La CI publica `openfoot-a
 | [docs/retirada-y-correcciones.md](docs/retirada-y-correcciones.md) | Cómo pedir retiradas o corregir enlaces |
 | [docs/sostenibilidad.md](docs/sostenibilidad.md) | Costes reales y modelo sin ingresos |
 | [docs/compilar-apk.md](docs/compilar-apk.md) | Compilación y firma del APK |
+| [docs/despliegue-vercel.md](docs/despliegue-vercel.md) | Despliegue en Vercel + Neon, paso a paso |
 | [docs/limitaciones.md](docs/limitaciones.md) | **Qué está probado y qué falta** |
 
 ## Contribuir al catálogo

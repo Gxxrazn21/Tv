@@ -1,0 +1,9 @@
+.venv
+tests
+build
+*.db
+.env
+.pytest_cache
+.ruff_cache
+__pycache__
+Dockerfile

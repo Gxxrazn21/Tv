@@ -3,7 +3,7 @@
 Lista honesta del estado a **14 de octubre de 2026**.
 
 ## Probado
-- Backend: 103 pruebas automatizadas que pasan sobre **SQLite y PostgreSQL 16**. Además: `ruff`,
+- Backend: 113 pruebas automatizadas que pasan sobre **SQLite y PostgreSQL 16**. Además: `ruff`,
   `pip-audit` sin vulnerabilidades, migración de ida y vuelta y comprobación de que no hay desfase
   entre modelo y migraciones.
 - Backend real con `uvicorn`: `/health`, `/v1/sources` y `/v1/competitions` responden. La CLI
@@ -30,4 +30,5 @@ Lista honesta del estado a **14 de octubre de 2026**.
 | **Límite de solicitudes** | En memoria, por proceso. | Con varias réplicas, aplicarlo en el proxy inverso. |
 | **Accesibilidad** | Etiquetas semánticas y textos junto a los colores. | Auditoría con TalkBack y prueba con tamaños de texto grandes. |
 | **Localización** | Solo español. | Inglés y portugués. |
+| **Vercel** | Preparado (`backend/vercel.json`, `api/index.py`, preparación automática, sincronización bajo demanda y tarea diaria) y probado en local, incluido el arranque en frío concurrente contra PostgreSQL. **No desplegado en Vercel real** por falta de acceso desde el entorno. | Seguir `docs/despliegue-vercel.md`. |
 | **Docker** | La imagen se construye y arranca en la CI (`/health` y `/v1/competitions` responden). `docker-compose.yml` con PostgreSQL no se ha levantado. | `docker compose up --build`. |
