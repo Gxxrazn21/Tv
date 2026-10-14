@@ -111,6 +111,15 @@ def create_app(settings: Settings | None = None, sources=None) -> FastAPI:
         log.error("Error no controlado en %s: %s", request.url.path, type(exc).__name__)
         return JSONResponse({"detail": "Error interno"}, status_code=500)
 
+    @app.get("/", include_in_schema=False)
+    def root():
+        return {
+            "name": "OpenFoot API",
+            "status": "ok",
+            "docs": "/docs",
+            "endpoints": ["/v1/competitions", "/v1/matches", "/v1/sources", "/v1/search"],
+        }
+
     @app.get("/health")
     def health():
         return {"status": "ok"}
