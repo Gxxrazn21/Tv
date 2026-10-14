@@ -13,6 +13,9 @@ from openfoot.services.watch import NO_VERIFIED_MESSAGE
 def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
     assert client.get("/").json()["docs"] == "/docs"
+    missing = client.get("/no-existe")
+    assert missing.status_code == 404
+    assert missing.json() == {"detail": "Not Found", "path": "/no-existe"}
 
 
 def test_security_headers(client):

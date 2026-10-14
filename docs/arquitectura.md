@@ -141,7 +141,7 @@ mobile/lib/
 - **Local:** `uvicorn` + SQLite (ver `README.md`).
 - **Autoalojado:** `docker compose up` (PostgreSQL + API, puerto ligado a 127.0.0.1). Delante va un
   proxy inverso con TLS (Caddy o nginx con Let's Encrypt).
-- **Vercel + Neon:** función sin servidor (`backend/api/index.py`) con preparación automática,
+- **Vercel + Neon:** función sin servidor (`backend/index.py`, preset FastAPI de Vercel) con preparación automática,
   sincronización cuando los datos tienen más de N minutos y una tarea diaria protegida por secreto.
   Ver `docs/despliegue-vercel.md`.
 - **CI:** GitHub Actions ejecuta el lint, las pruebas, `pip-audit`, las migraciones y el catálogo, y

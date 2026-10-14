@@ -30,5 +30,5 @@ Lista honesta del estado a **14 de octubre de 2026**.
 | **Límite de solicitudes** | En memoria, por proceso. | Con varias réplicas, aplicarlo en el proxy inverso. |
 | **Accesibilidad** | Etiquetas semánticas y textos junto a los colores. | Auditoría con TalkBack y prueba con tamaños de texto grandes. |
 | **Localización** | Solo español. | Inglés y portugués. |
-| **Vercel** | Preparado (`backend/vercel.json`, `api/index.py`, preparación automática, sincronización bajo demanda y tarea diaria) y probado en local, incluido el arranque en frío concurrente contra PostgreSQL. **No desplegado en Vercel real** por falta de acceso desde el entorno. | Seguir `docs/despliegue-vercel.md`. |
+| **Vercel** | Desplegado por el usuario (`backend/index.py` con el preset FastAPI, `vercel.json` solo con la tarea diaria). La primera versión, con reescrituras a `/api/index`, devolvía 404 en todas las rutas y se corrigió. La preparación automática y la sincronización bajo demanda se probaron en local contra PostgreSQL; falta confirmar que funcionan en Vercel. | Seguir `docs/despliegue-vercel.md`. |
 | **Docker** | La imagen se construye y arranca en la CI (`/health` y `/v1/competitions` responden). `docker-compose.yml` con PostgreSQL no se ha levantado. | `docker compose up --build`. |

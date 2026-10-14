@@ -76,7 +76,7 @@ En **Settings → Environment Variables** añade:
 - **Neon gratuito:** almacenamiento y horas de cómputo limitados, más que suficientes para uso
   personal. La base «se duerme» si no se usa y la primera conexión tarda algo más.
 - **Vercel Hobby:** solo uso personal y no comercial, con límites mensuales de invocaciones y
-  tiempo de ejecución. Cada petición puede durar como máximo 60 s según `vercel.json`.
+  tiempo de ejecución por petición (consulta los límites vigentes de tu plan).
 - **football-data.org gratuito:** como mucho 10 solicitudes por minuto. OpenFoot sincroniza como
   mucho una vez cada 10 minutos, con un par de solicitudes, y la tarea diaria usa unas 7.
 - **El catálogo manda:** en Vercel, `backend/data/catalog.yaml` se vuelve a cargar en cada arranque.

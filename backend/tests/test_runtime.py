@@ -129,7 +129,7 @@ def test_vercel_entrypoint_exposes_app(monkeypatch, tmp_path):
     monkeypatch.setenv("OPENFOOT_DATABASE_URL", f"sqlite:///{tmp_path / 'v.db'}")
     get_settings.cache_clear()
     try:
-        module = runpy.run_path(str(Path(__file__).parent.parent / "api" / "index.py"))
+        module = runpy.run_path(str(Path(__file__).parent.parent / "index.py"))
         assert module["app"].title == "OpenFoot API"
     finally:
         get_settings.cache_clear()

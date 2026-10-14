@@ -105,6 +105,12 @@ def create_app(settings: Settings | None = None, sources=None) -> FastAPI:
         response.headers["Cache-Control"] = response.headers.get("Cache-Control", "no-store")
         return response
 
+    @app.exception_handler(404)
+    async def not_found(request: Request, exc):
+        # Incluye la ruta recibida: ayuda a detectar reescrituras mal configuradas en el proxy.
+        detail = getattr(exc, "detail", None) or "Not Found"
+        return JSONResponse({"detail": detail, "path": request.url.path[:200]}, status_code=404)
+
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception):
         # Se registra el tipo de error y la ruta, sin cabeceras ni parámetros del cliente.
