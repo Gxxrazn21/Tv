@@ -113,8 +113,14 @@ def create_app(settings: Settings | None = None, sources=None) -> FastAPI:
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception):
-        # Se registra el tipo de error y la ruta, sin cabeceras ni parámetros del cliente.
-        log.error("Error no controlado en %s: %s", request.url.path, type(exc).__name__)
+        # Se registra la traza (logs privados del operador) y la ruta, sin cabeceras ni
+        # parámetros del cliente. Al cliente solo se le devuelve un mensaje genérico.
+        log.error(
+            "Error no controlado en %s: %s",
+            request.url.path,
+            type(exc).__name__,
+            exc_info=(type(exc), exc, exc.__traceback__),
+        )
         return JSONResponse({"detail": "Error interno"}, status_code=500)
 
     @app.get("/", include_in_schema=False)
@@ -129,6 +135,41 @@ def create_app(settings: Settings | None = None, sources=None) -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "ok"}
+
+    @app.get("/health/ready", include_in_schema=False)
+    def ready():
+        """Diagnóstico sin secretos: tipo de base de datos, ficheros desplegados y preparación."""
+        from pathlib import Path
+
+        from sqlalchemy import text
+
+        from openfoot.db import get_engine
+        from openfoot.services.runtime import ROOT, bootstrap
+
+        report: dict = {
+            "database": settings.database_url.split(":", 1)[0],
+            "files": {
+                "alembic.ini": (ROOT / "alembic.ini").exists(),
+                "alembic/versions": (ROOT / "alembic" / "versions").is_dir(),
+                "data/catalog.yaml": (ROOT / "data" / "catalog.yaml").exists(),
+            },
+            "auto_bootstrap": settings.auto_bootstrap,
+            "football_data_configured": settings.football_data_token is not None,
+            "root": str(Path(ROOT).name),
+        }
+        try:
+            engine = get_engine()
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            report["connection"] = "ok"
+            if settings.auto_bootstrap:
+                bootstrap(engine, settings)
+                report["bootstrap"] = "ok"
+        except Exception as exc:  # noqa: BLE001 - es un diagnóstico
+            log.error("Diagnóstico /health/ready", exc_info=(type(exc), exc, exc.__traceback__))
+            report["error"] = type(exc).__name__
+            return JSONResponse(report, status_code=503)
+        return report
 
     @app.get("/internal/cron/daily", include_in_schema=False, dependencies=[Depends(ensure_ready)])
     def cron_daily(request: Request, session: SessionDep):

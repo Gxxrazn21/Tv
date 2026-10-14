@@ -259,3 +259,31 @@ def test_rate_limiter_prunes_stale_clients():
         rl.allow(f"10.0.{i // 256}.{i % 256}", now=0.0)
     rl.allow("nuevo", now=120.0)
     assert len(rl._hits) == 1
+
+
+def test_ready_diagnostics(engine, monkeypatch, tmp_path):
+    from openfoot import db
+
+    monkeypatch.setattr(db, "_engine", None)
+    url = f"sqlite:///{tmp_path / 'r.db'}"
+    settings = Settings(_env_file=None, database_url=url, auto_bootstrap=True)
+    monkeypatch.setattr(db, "get_settings", lambda: settings)
+    from openfoot.services import runtime
+
+    runtime.reset_bootstrap_flag()
+    try:
+        with TestClient(create_app(settings, sources=[])) as c:
+            r = c.get("/health/ready")
+        body = r.json()
+        assert r.status_code == 200, body
+        assert body["database"] == "sqlite"
+        assert body["files"] == {
+            "alembic.ini": True,
+            "alembic/versions": True,
+            "data/catalog.yaml": True,
+        }
+        assert body["connection"] == "ok" and body["bootstrap"] == "ok"
+        assert "token" not in r.text.lower() or body["football_data_configured"] is False
+    finally:
+        runtime.reset_bootstrap_flag()
+        monkeypatch.setattr(db, "_engine", None)
