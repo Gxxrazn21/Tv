@@ -1,7 +1,7 @@
 # Robot de mini-sumo RC: simulador 3D y firmware
 
 Robot de sumo con ESP32-WROOM-32, controlador TB6612FNG (PCB CUyLAB V8), dos motores N20 de 6 V y
-500 RPM, batería LiPo 2S y mando genérico de Switch por Bluetooth (MAC 98:B6:E9:85:31:E4).
+500 RPM, batería LiPo 2S y mando genérico de Switch por Bluetooth (MAC AC:8E:BD:65:D2:0A).
 
 ```
 robot-sumo/
@@ -18,11 +18,10 @@ Abre `simulador/index.html` en Chrome o Edge (necesita internet para cargar thre
 |---|---|---|
 | W / S | Stick izquierdo vertical | Avance y retroceso |
 | A / D | Stick izquierdo horizontal | Curva suave para hacer zigzag |
-| ← / → | Stick derecho horizontal | Giro fuerte; sin avanzar, gira sobre sí mismo |
+| ← / → | Stick derecho horizontal | Gira sobre su eje mientras se mantenga |
 | Shift | ZR | Ataque: sube el límite de PWM |
 | Espacio | ZL | Freno corto |
-| X | B (botón de abajo) | Parada inmediata (STBY a LOW) |
-| T | X (botón de arriba) | Rearmar con el stick centrado |
+| X | B (botón de abajo), mantener | Motores libres mientras se mantiene |
 | R | − | Nueva ronda (solo en el simulador) |
 
 El mando conectado al ordenador por USB o Bluetooth también controla el simulador.
@@ -48,7 +47,7 @@ El mando es de Switch, así que el sketch usa **Bluepad32** (PS4Controller solo 
    `https://raw.githubusercontent.com/ricardoquesada/esp32-arduino-lib-builder/master/bluepad32_files/package_esp32_bluepad32_index.json`
 2. Gestor de placas → instala **esp32_bluepad32** (incluye la librería Bluepad32).
 3. Placa **ESP32 Arduino (Bluepad32) → ESP32 Dev Module**, monitor serie a 115200.
-4. `MAC_MANDO` ya tiene tu mando (`98:B6:E9:85:31:E4`). Con `SOLO_ESTE_MANDO 1` se ignora
+4. `MAC_MANDO` ya tiene tu mando (`AC:8E:BD:65:D2:0A`). Con `SOLO_ESTE_MANDO 1` se ignora
    cualquier otro mando cercano. Si el tuyo no conecta, ponlo a `0` y mira en el monitor serie la
    dirección con la que se presenta.
 5. Pines de la CUyLAB V8 (ya puestos en el sketch):
@@ -69,9 +68,10 @@ El mando es de Switch, así que el sketch usa **Bluepad32** (PS4Controller solo 
 Los gatillos ZL/ZR del mando de Switch son digitales: ZR pasa directamente del límite normal al de
 ataque.
 
-Seguridad incluida: arranca en parada, B corta STBY, y sin datos del mando durante 300 ms el
-robot se detiene y exige rearmar con X. Los LED de jugador indican el modo (extremos = parada,
-1 = normal, 4 = ataque, centrales = freno) y el mando vibra al armar.
+No hay que armar nada: al conectar el mando vibra y el robot ya responde. Si el mando se
+desconecta, los motores se paran y al reconectar sigue solo. Solo cuenta la conexión Bluetooth (no
+el tiempo sin datos), porque el mando no envía nada mientras los sticks están quietos. Si el ESP32
+se reinicia por caída de tensión, el monitor serie lo avisa al arrancar.
 
 Los N20 son de 6 V: con la batería llena (8,4 V), un PWM por encima del 71 % les da más tensión de la
 nominal. Los límites por defecto son 70 % (normal) y 85 % (ataque); sube el de ataque solo después de

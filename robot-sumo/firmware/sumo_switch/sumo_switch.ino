@@ -28,16 +28,17 @@
    Stick derecho horizontal    giro fuerte; sin avanzar, gira sobre sí mismo
    ZR                          ataque: sube el límite de potencia
    ZL                          freno corto (IN1 = IN2 = HIGH)
-   B (botón de abajo)          parada inmediata (motores libres; STBY = LOW si tiene pin)
-   X (botón de arriba)         rearmar, con el stick centrado y ZR suelto
-   El robot arranca en parada y vuelve a ella si se pierde el mando.
+   B (botón de abajo)          mantener pulsado: motores libres (opcional)
+   No hay que armar nada: en cuanto el mando conecta, el robot responde.
+   Si el mando se desconecta, los motores se paran; al reconectar sigue solo.
 */
 
 #include <Bluepad32.h>
+#include <esp_system.h>
 
 // ---------- Mando ----------
 #define SOLO_ESTE_MANDO 1                 // 1: ignora cualquier otro mando
-const char* MAC_MANDO = "98:B6:E9:85:31:E4";
+const char* MAC_MANDO = "AC:8E:BD:65:D2:0A";
 
 #if SOLO_ESTE_MANDO
 #include <uni.h>
@@ -64,14 +65,13 @@ const bool INVERTIR_DER   = false;
 const float LIMITE_NORMAL = 0.7f;  // fracción de PWM sin ZR
 const float LIMITE_ATAQUE = 0.85f;  // fracción de PWM con ZR pulsado
 const float RAMPA         = 6.0f;  // cambio máximo de PWM por segundo (1 = 100 %)
-const float GANANCIA_GIRO = 0.75f;  // stick derecho: giro fuerte
+const float GANANCIA_GIRO = 1.0f;  // stick derecho: giro fuerte
 const float GIRO_ZIGZAG   = 0.35f;  // stick izquierdo horizontal: curva suave
 const float EXPO          = 0.4f;  // 0 = lineal; cerca de 1 = muy suave en el centro
 const float ZONA_MUERTA   = 0.08f;
 const float UMBRAL_FRENO  = 0.2f;  // recorrido de ZL que activa el freno
 
 const uint32_t PERIODO_MS    = 10;     // bucle de control a 100 Hz
-const uint32_t SIN_SENAL_MS  = 300;    // sin datos del mando durante este tiempo = parada
 const uint32_t PWM_FREQ      = 20000;  // 20 kHz, fuera del rango audible
 const uint8_t  PWM_BITS      = 8;
 const int      PWM_MAX       = (1 << PWM_BITS) - 1;
@@ -81,15 +81,14 @@ const bool     DEPURAR       = false;  // true: imprime el estado cada 250 ms
 enum Modo { DESCONECTADO, PARADA, FRENO, NORMAL, ATAQUE };
 const char* NOMBRE_MODO[] = { "desconectado", "parada", "freno", "normal", "ataque" };
 
-struct Entrada { bool conectado; float lx, ly, rx, zr, zl; bool parar, rearmar; };
-struct Estado  { bool parada; float salIzq, salDer; };
+struct Entrada { bool conectado; float lx, ly, rx, zr, zl; bool parar; };
+struct Estado  { float salIzq, salDer; };
 struct Motor   { int pwm, in1, in2, canal; bool invertir; };
 
-Estado estado = { true, 0, 0 };
+Estado estado = { 0, 0 };
 Motor motorIzq, motorDer;
 bool pinesListos = false;
 uint32_t ultimoPaso = 0, ultimaTraza = 0;
-uint32_t ultimoPaquete = 0;
 ControllerPtr mando = nullptr;
 int ultimoModo = -1;
 
@@ -109,11 +108,8 @@ float rampa(float actual, float objetivo, float paso) {
 
 // Lógica de conducción. Es la misma que ejecuta el simulador.
 Modo pasoControl(Estado& st, const Entrada& in, float dt) {
-  if (!in.conectado) { st.parada = true; st.salIzq = st.salDer = 0; return DESCONECTADO; }
-  if (in.parar) st.parada = true;
-  bool centrado = zonaMuerta(in.lx) == 0 && zonaMuerta(in.ly) == 0 && zonaMuerta(in.rx) == 0 && in.zr < 0.1f;
-  if (st.parada && in.rearmar && centrado) st.parada = false;
-  if (st.parada) { st.salIzq = st.salDer = 0; return PARADA; }
+  if (!in.conectado) { st.salIzq = st.salDer = 0; return DESCONECTADO; }
+  if (in.parar) { st.salIzq = st.salDer = 0; return PARADA; }
   if (in.zl > UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return FRENO; }
 
   float avance = curvaExpo(zonaMuerta(in.ly));
@@ -197,9 +193,9 @@ void escribirStby(bool activo) {
 void alConectar(ControllerPtr ctl) {
   if (mando == nullptr) {
     mando = ctl;
-    ultimoPaquete = millis();
     ultimoModo = -1;
-    Serial.printf("Mando conectado: %s\n", ctl->getModelName().c_str());
+    Serial.printf("Mando conectado: %s. Listo para conducir.\n", ctl->getModelName().c_str());
+    ctl->playDualRumble(0, 150, 0x60, 0x60);
   } else {
     Serial.println("Ya hay un mando conectado; se ignora el segundo.");
     ctl->disconnect();
@@ -214,11 +210,9 @@ void alDesconectar(ControllerPtr ctl) {
 }
 
 // Los 4 LED de jugador indican el modo: 1 = normal, 4 = ataque,
-// extremos = parada, centrales = freno. Al armar vibra un instante.
+// extremos = B pulsado, centrales = freno. Al conectar vibra un instante.
 void ledsMando(Modo modo) {
   if (modo == ultimoModo || mando == nullptr) return;
-  if (ultimoModo == PARADA && (modo == NORMAL || modo == ATAQUE))
-    mando->playDualRumble(0, 120, 0x60, 0x60);
   ultimoModo = modo;
   switch (modo) {
     case PARADA: mando->setPlayerLEDs(0x09); break;
@@ -247,6 +241,8 @@ void soloEsteMando() {
 void setup() {
   Serial.begin(115200);
   delay(200);
+  if (esp_reset_reason() == ESP_RST_BROWNOUT)
+    Serial.println("AVISO: el ESP32 se reinició por caída de tensión. Carga la batería.");
 
   if (pinesValidos()) {
     Motor a = { PIN_PWMA, PIN_AIN1, PIN_AIN2, 0, false };
@@ -287,18 +283,19 @@ void loop() {
   float dt = limitar((ahora - ultimoPaso) / 1000.0f, 0, 0.05f);
   ultimoPaso = ahora;
 
-  if (BP32.update() && mando && mando->hasData()) ultimoPaquete = ahora;
+  BP32.update();
 
-  Entrada in = { false, 0, 0, 0, 0, 0, false, false };
-  in.conectado = mando && mando->isConnected() && (ahora - ultimoPaquete) < SIN_SENAL_MS;
+  // Solo cuenta la conexión Bluetooth: el mando puede pasar ratos sin enviar
+  // datos (stick quieto) y eso no debe parar el robot.
+  Entrada in = { false, 0, 0, 0, 0, 0, false };
+  in.conectado = mando && mando->isConnected();
   if (in.conectado) {
     in.lx = limitar(mando->axisX() / 512.0f, -1, 1);
     in.ly = limitar(-mando->axisY() / 512.0f, -1, 1);   // arriba = negativo en Bluepad32
     in.rx = limitar(mando->axisRX() / 512.0f, -1, 1);
     in.zr = mando->throttle() / 1023.0f;
     in.zl = mando->brake() / 1023.0f;
-    in.parar = mando->a();      // botón de abajo (B en Switch)
-    in.rearmar = mando->y();    // botón de arriba (X en Switch)
+    in.parar = mando->a();      // botón de abajo (B en Switch), mientras se mantenga
   }
 
   Modo modo = pasoControl(estado, in, dt);
