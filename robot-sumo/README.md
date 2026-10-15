@@ -1,13 +1,13 @@
 # Robot de mini-sumo RC: simulador 3D y firmware
 
-Robot de sumo con ESP32-WROOM-32, controlador TB6612FNG (PCB CUyLAB V3.1), dos motores N20 de 6 V y
+Robot de sumo con ESP32-WROOM-32, controlador TB6612FNG (PCB CUyLAB V8), dos motores N20 de 6 V y
 500 RPM, batería LiPo 2S y mando genérico de Switch por Bluetooth (MAC 98:B6:E9:85:31:E4).
 
 ```
 robot-sumo/
 ├── simulador/index.html        Dohyo 3D: conduces el robot con teclado, mando o pantalla táctil
 └── firmware/sumo_switch/
-    └── sumo_switch.ino         Sketch para el ESP32 con Bluepad32 (GPIO en -1 hasta que los confirmes)
+    └── sumo_switch.ino         Sketch para el ESP32 con Bluepad32, con los pines de la CUyLAB V8
 ```
 
 ## Simulador
@@ -51,9 +51,16 @@ El mando es de Switch, así que el sketch usa **Bluepad32** (PS4Controller solo 
 4. `MAC_MANDO` ya tiene tu mando (`98:B6:E9:85:31:E4`). Con `SOLO_ESTE_MANDO 1` se ignora
    cualquier otro mando cercano. Si el tuyo no conecta, ponlo a `0` y mira en el monitor serie la
    dirección con la que se presenta.
-5. Completa los 7 GPIO en `sumo_switch.ino` (o en el simulador y copia el código generado).
-   Con algún GPIO en `-1`, el programa no activa ninguna salida e imprime el estado del mando por el
-   monitor serie, útil para probar el emparejado.
+5. Pines de la CUyLAB V8 (ya puestos en el sketch):
+
+   | TB6612FNG | GPIO | | TB6612FNG | GPIO |
+   |---|---|---|---|---|
+   | PWMA | 13 | | PWMB | 14 |
+   | AIN1 | 32 | | BIN1 | 26 |
+   | AIN2 | 33 | | BIN2 | 27 |
+
+   Driver A va a M_LEFT (MA1/MA2) y driver B a M_RIGHT (MB1/MB2). La placa no lleva STBY a ningún
+   GPIO (`PIN_STBY = -1`), así que la parada deja los motores libres con IN1 = IN2 = LOW.
 6. Emparejar: con el ESP32 encendido, mantén pulsado el botón de sincronización del mando hasta que
    conecte. Si estaba emparejado con una Switch, déjala apagada.
 7. Primera prueba con las ruedas en el aire. Ajusta `MOTOR_IZQ_EN_A`, `INVERTIR_IZQ` e

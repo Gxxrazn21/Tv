@@ -1,6 +1,6 @@
 /*
   Robot de mini-sumo RC: ESP32-WROOM-32 + mando Switch (Bluetooth) + TB6612FNG
-  PCB CUyLAB V3.1 · LiPo 2S 500 mAh · 2 motores N20 6 V 500 RPM
+  PCB CUyLAB V8 · LiPo 2S 500 mAh · 2 motores N20 6 V 500 RPM
 
   Generado por el Simulador Sumo ESP32. La función pasoControl() es la
   misma que mueve el robot del simulador: con los mismos ajustes, el
@@ -28,7 +28,7 @@
    Stick derecho horizontal    giro fuerte; sin avanzar, gira sobre sí mismo
    ZR                          ataque: sube el límite de potencia
    ZL                          freno corto (IN1 = IN2 = HIGH)
-   B (botón de abajo)          parada inmediata (STBY = LOW)
+   B (botón de abajo)          parada inmediata (motores libres; STBY = LOW si tiene pin)
    X (botón de arriba)         rearmar, con el stick centrado y ZR suelto
    El robot arranca en parada y vuelve a ella si se pierde el mando.
 */
@@ -43,14 +43,16 @@ const char* MAC_MANDO = "98:B6:E9:85:31:E4";
 #include <uni.h>
 #endif
 
-// ---------- GPIO del TB6612FNG (-1 = sin confirmar) ----------
-const int PIN_PWMA = -1;
-const int PIN_AIN1 = -1;
-const int PIN_AIN2 = -1;
+// ---------- GPIO del TB6612FNG ----------
+// Pines de la CUyLAB V8: driver 1 (A) = M_LEFT, driver 2 (B) = M_RIGHT.
+// PIN_STBY = -1: la placa no lleva STBY a ningún GPIO (queda fijo a 3,3 V).
+const int PIN_PWMA = 13;
+const int PIN_AIN1 = 32;
+const int PIN_AIN2 = 33;
 const int PIN_STBY = -1;
-const int PIN_BIN1 = -1;
-const int PIN_BIN2 = -1;
-const int PIN_PWMB = -1;
+const int PIN_BIN1 = 26;
+const int PIN_BIN2 = 27;
+const int PIN_PWMB = 14;
 
 // ---------- Montaje: ajustar con la prueba de giro ----------
 const bool MOTOR_IZQ_EN_A = true;  // true: motor izquierdo en AO1/AO2
@@ -178,12 +180,17 @@ bool pinValido(int p) {
 }
 
 bool pinesValidos() {
-  const int pines[] = { PIN_PWMA, PIN_AIN1, PIN_AIN2, PIN_STBY, PIN_BIN1, PIN_BIN2, PIN_PWMB };
-  for (int i = 0; i < 7; i++) {
+  const int pines[] = { PIN_PWMA, PIN_AIN1, PIN_AIN2, PIN_BIN1, PIN_BIN2, PIN_PWMB, PIN_STBY };
+  const int total = PIN_STBY < 0 ? 6 : 7;          // STBY es opcional
+  for (int i = 0; i < total; i++) {
     if (!pinValido(pines[i])) return false;
-    for (int j = i + 1; j < 7; j++) if (pines[i] == pines[j]) return false;
+    for (int j = i + 1; j < total; j++) if (pines[i] == pines[j]) return false;
   }
   return true;
+}
+
+void escribirStby(bool activo) {
+  if (PIN_STBY >= 0) digitalWrite(PIN_STBY, activo ? HIGH : LOW);
 }
 
 // ---------- Mando ----------
@@ -249,8 +256,8 @@ void setup() {
     motorIzq.invertir = INVERTIR_IZQ;
     motorDer.invertir = INVERTIR_DER;
 
-    pinMode(PIN_STBY, OUTPUT);
-    digitalWrite(PIN_STBY, LOW);
+    if (PIN_STBY >= 0) pinMode(PIN_STBY, OUTPUT);
+    escribirStby(false);
     const int salidas[] = { PIN_AIN1, PIN_AIN2, PIN_BIN1, PIN_BIN2 };
     for (int p : salidas) { pinMode(p, OUTPUT); digitalWrite(p, LOW); }
     pwmConfigurar(motorIzq);
@@ -301,13 +308,13 @@ void loop() {
     if (modo == DESCONECTADO || modo == PARADA) {
       moverMotor(motorIzq, 0);
       moverMotor(motorDer, 0);
-      digitalWrite(PIN_STBY, LOW);
+      escribirStby(false);
     } else if (modo == FRENO) {
-      digitalWrite(PIN_STBY, HIGH);
+      escribirStby(true);
       frenarMotor(motorIzq);
       frenarMotor(motorDer);
     } else {
-      digitalWrite(PIN_STBY, HIGH);
+      escribirStby(true);
       moverMotor(motorIzq, estado.salIzq);
       moverMotor(motorDer, estado.salDer);
     }
