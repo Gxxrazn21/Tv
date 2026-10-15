@@ -258,7 +258,7 @@ ul.plain { padding-left: 18px; }
     <div class="banner" id="banner"><strong id="bannerT">Robot en parada</strong><p id="bannerP">Pulsa <kbd>T</kbd> o X del mando con el stick centrado para armarlo.</p></div>
     <div class="speed"><b id="spd">0.00</b><span>m/s</span></div>
     <div class="keys">
-      <span><kbd>W</kbd><kbd>S</kbd> avance</span><span><kbd>A</kbd><kbd>D</kbd> giro</span><span><kbd>Shift</kbd> ZR ataque</span>
+      <span><kbd>W</kbd><kbd>S</kbd> avance</span><span><kbd>A</kbd><kbd>D</kbd> zigzag</span><span><kbd>←</kbd><kbd>→</kbd> giro</span><span><kbd>Shift</kbd> ZR ataque</span>
       <span><kbd>Espacio</kbd> ZL freno</span><span><kbd>X</kbd> B parada</span><span><kbd>T</kbd> X armar</span><span><kbd>R</kbd> ronda</span>
     </div>
     <div class="touch" id="touch" hidden>
@@ -289,6 +289,7 @@ ul.plain { padding-left: 18px; }
           <div class="trig">
             <div class="trow"><span>ZL</span><div class="bar ink"><span id="barL2"></span></div><span id="valL2">0</span></div>
             <div class="trow"><span>ZR</span><div class="bar hot"><span id="barR2"></span></div><span id="valR2">0</span></div>
+            <div class="trow" title="Stick derecho horizontal"><span>RX</span><div class="bar"><span id="barRX"></span><i class="tick" style="left:50%;position:absolute;top:0;bottom:0;width:1px;background:var(--muted)"></i></div><span id="valRX">0</span></div>
             <div class="btnrow"><span class="pbtn" id="pbX" title="B: parada">B</span><span class="pbtn" id="pbT" title="X: armar">X</span><span class="pled" id="pled" title="LED de jugador del mando"><i></i><i></i><i></i><i></i></span></div>
           </div>
         </div>
@@ -341,7 +342,8 @@ ul.plain { padding-left: 18px; }
         <div class="field"><label for="sAttack">Límite de ataque (ZR pulsado)</label><div class="range"><input type="range" id="sAttack" min="20" max="100" step="1"><output id="oAttack"></output></div></div>
         <p class="note" id="voltNote"></p>
         <div class="field"><label for="sRamp">Rampa (cambio de PWM por segundo)</label><div class="range"><input type="range" id="sRamp" min="1" max="20" step="0.5"><output id="oRamp"></output></div></div>
-        <div class="field"><label for="sTurn">Ganancia de giro</label><div class="range"><input type="range" id="sTurn" min="20" max="100" step="1"><output id="oTurn"></output></div></div>
+        <div class="field"><label for="sZig">Curva del stick izquierdo (zigzag)</label><div class="range"><input type="range" id="sZig" min="0" max="80" step="1"><output id="oZig"></output></div></div>
+        <div class="field"><label for="sTurn">Giro del stick derecho</label><div class="range"><input type="range" id="sTurn" min="20" max="100" step="1"><output id="oTurn"></output></div></div>
         <div class="field"><label for="sExpo">Expo del stick</label><div class="range"><input type="range" id="sExpo" min="0" max="90" step="5"><output id="oExpo"></output></div></div>
         <div class="field"><label for="sDead">Zona muerta</label><div class="range"><input type="range" id="sDead" min="2" max="20" step="1"><output id="oDead"></output></div></div>
         <div class="field"><label for="sBrake">Umbral de ZL para frenar</label><div class="range"><input type="range" id="sBrake" min="5" max="80" step="5"><output id="oBrake"></output></div></div>
@@ -408,7 +410,8 @@ ul.plain { padding-left: 18px; }
           <thead><tr><th>Simulador</th><th>Mando real</th><th>Firmware</th></tr></thead>
           <tbody>
             <tr><td>W / S</td><td>Stick izq. vertical</td><td class="mono">mando-&gt;axisY()</td></tr>
-            <tr><td>A / D</td><td>Stick izq. horizontal</td><td class="mono">mando-&gt;axisX()</td></tr>
+            <tr><td>A / D</td><td>Stick izq. horizontal (zigzag)</td><td class="mono">mando-&gt;axisX()</td></tr>
+            <tr><td>← / →</td><td>Stick der. horizontal (giro)</td><td class="mono">mando-&gt;axisRX()</td></tr>
             <tr><td>Shift</td><td>ZR</td><td class="mono">mando-&gt;throttle()</td></tr>
             <tr><td>Espacio</td><td>ZL</td><td class="mono">mando-&gt;brake()</td></tr>
             <tr><td>X</td><td>B (abajo)</td><td class="mono">mando-&gt;a()</td></tr>
@@ -512,7 +515,8 @@ ul.plain { padding-left: 18px; }
 
   Controles (posición de los botones en el mando de Switch)
    Stick izquierdo vertical    avance y retroceso
-   Stick izquierdo horizontal  giro diferencial
+   Stick izquierdo horizontal  curva suave para zigzag (GIRO_ZIGZAG)
+   Stick derecho horizontal    giro fuerte; sin avanzar, gira sobre sí mismo
    ZR                          ataque: sube el límite de potencia
    ZL                          freno corto (IN1 = IN2 = HIGH)
    B (botón de abajo)          parada inmediata (STBY = LOW)
@@ -549,7 +553,8 @@ const bool INVERTIR_DER   = {{INV_DER}};
 const float LIMITE_NORMAL = {{NORMAL}};  // fracción de PWM sin ZR
 const float LIMITE_ATAQUE = {{ATTACK}};  // fracción de PWM con ZR pulsado
 const float RAMPA         = {{RAMP}};  // cambio máximo de PWM por segundo (1 = 100 %)
-const float GANANCIA_GIRO = {{TURN}};
+const float GANANCIA_GIRO = {{TURN}};  // stick derecho: giro fuerte
+const float GIRO_ZIGZAG   = {{ZIG}};  // stick izquierdo horizontal: curva suave
 const float EXPO          = {{EXPO}};  // 0 = lineal; cerca de 1 = muy suave en el centro
 const float ZONA_MUERTA   = {{DEADZONE}};
 const float UMBRAL_FRENO  = {{BRAKE}};  // recorrido de ZL que activa el freno
@@ -565,7 +570,7 @@ const bool     DEPURAR       = false;  // true: imprime el estado cada 250 ms
 enum Modo { DESCONECTADO, PARADA, FRENO, NORMAL, ATAQUE };
 const char* NOMBRE_MODO[] = { "desconectado", "parada", "freno", "normal", "ataque" };
 
-struct Entrada { bool conectado; float lx, ly, zr, zl; bool parar, rearmar; };
+struct Entrada { bool conectado; float lx, ly, rx, zr, zl; bool parar, rearmar; };
 struct Estado  { bool parada; float salIzq, salDer; };
 struct Motor   { int pwm, in1, in2, canal; bool invertir; };
 
@@ -595,13 +600,15 @@ float rampa(float actual, float objetivo, float paso) {
 Modo pasoControl(Estado& st, const Entrada& in, float dt) {
   if (!in.conectado) { st.parada = true; st.salIzq = st.salDer = 0; return DESCONECTADO; }
   if (in.parar) st.parada = true;
-  bool centrado = zonaMuerta(in.lx) == 0 && zonaMuerta(in.ly) == 0 && in.zr < 0.1f;
+  bool centrado = zonaMuerta(in.lx) == 0 && zonaMuerta(in.ly) == 0 && zonaMuerta(in.rx) == 0 && in.zr < 0.1f;
   if (st.parada && in.rearmar && centrado) st.parada = false;
   if (st.parada) { st.salIzq = st.salDer = 0; return PARADA; }
   if (in.zl > UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return FRENO; }
 
   float avance = curvaExpo(zonaMuerta(in.ly));
-  float giro = curvaExpo(zonaMuerta(in.lx)) * GANANCIA_GIRO;
+  float giro = curvaExpo(zonaMuerta(in.lx)) * GIRO_ZIGZAG
+             + curvaExpo(zonaMuerta(in.rx)) * GANANCIA_GIRO;
+  giro = limitar(giro, -1, 1);
   float izq = avance + giro;
   float der = avance - giro;
   float m = fmaxf(fabsf(izq), fabsf(der));
@@ -766,11 +773,12 @@ void loop() {
 
   if (BP32.update() && mando && mando->hasData()) ultimoPaquete = ahora;
 
-  Entrada in = { false, 0, 0, 0, 0, false, false };
+  Entrada in = { false, 0, 0, 0, 0, 0, false, false };
   in.conectado = mando && mando->isConnected() && (ahora - ultimoPaquete) < SIN_SENAL_MS;
   if (in.conectado) {
     in.lx = limitar(mando->axisX() / 512.0f, -1, 1);
     in.ly = limitar(-mando->axisY() / 512.0f, -1, 1);   // arriba = negativo en Bluepad32
+    in.rx = limitar(mando->axisRX() / 512.0f, -1, 1);
     in.zr = mando->throttle() / 1023.0f;
     in.zl = mando->brake() / 1023.0f;
     in.parar = mando->a();      // botón de abajo (B en Switch)
@@ -798,8 +806,8 @@ void loop() {
 
   if ((DEPURAR || !pinesListos) && ahora - ultimaTraza >= 250) {
     ultimaTraza = ahora;
-    Serial.printf("%-12s lx=%+.2f ly=%+.2f zr=%.2f zl=%.2f  izq=%+.2f der=%+.2f\n",
-                  NOMBRE_MODO[modo], in.lx, in.ly, in.zr, in.zl, estado.salIzq, estado.salDer);
+    Serial.printf("%-12s lx=%+.2f ly=%+.2f rx=%+.2f zr=%.2f zl=%.2f  izq=%+.2f der=%+.2f\n",
+                  NOMBRE_MODO[modo], in.lx, in.ly, in.rx, in.zr, in.zl, estado.salIzq, estado.salDer);
   }
 }
 </script>
@@ -818,7 +826,7 @@ const EXAMPLE_PINS = { PWMA: 32, AIN1: 25, AIN2: 26, STBY: 27, BIN1: 14, BIN2: 1
 const DEFAULTS = {
   pins: { PWMA: '', AIN1: '', AIN2: '', STBY: '', BIN1: '', BIN2: '', PWMB: '' },
   mac: '98:B6:E9:85:31:E4',
-  normal: 70, attack: 85, ramp: 6, turn: 75, expo: 40, dead: 8, brake: 20,
+  normal: 70, attack: 85, ramp: 6, turn: 75, zig: 35, expo: 40, dead: 8, brake: 20,
   leftOnA: true, invL: false, invR: false,
   pLeftOnA: true, pInvL: false, pInvR: false,
   vbat: 8.4, rpm: 500, stall: 1.0, istall: 1.6, mass: 400, mu: 1.0,
@@ -845,7 +853,7 @@ function saveSettings() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S
 function fwConfig() {
   return {
     LIMITE_NORMAL: S.normal / 100, LIMITE_ATAQUE: S.attack / 100, RAMPA: S.ramp,
-    GANANCIA_GIRO: S.turn / 100, EXPO: S.expo / 100, ZONA_MUERTA: S.dead / 100, UMBRAL_FRENO: S.brake / 100,
+    GANANCIA_GIRO: S.turn / 100, GIRO_ZIGZAG: S.zig / 100, EXPO: S.expo / 100, ZONA_MUERTA: S.dead / 100, UMBRAL_FRENO: S.brake / 100,
     MOTOR_IZQ_EN_A: S.leftOnA, INVERTIR_IZQ: S.invL, INVERTIR_DER: S.invR
   };
 }
@@ -857,12 +865,13 @@ function makeFw(cfg) {
   function pasoControl(st, inp, dt) {
     if (!inp.conectado) { st.parada = true; st.salIzq = st.salDer = 0; return 'desconectado'; }
     if (inp.parar) st.parada = true;
-    const centrado = zonaMuerta(inp.lx) === 0 && zonaMuerta(inp.ly) === 0 && inp.zr < 0.1;
+    const centrado = zonaMuerta(inp.lx) === 0 && zonaMuerta(inp.ly) === 0 && zonaMuerta(inp.rx) === 0 && inp.zr < 0.1;
     if (st.parada && inp.rearmar && centrado) st.parada = false;
     if (st.parada) { st.salIzq = st.salDer = 0; return 'parada'; }
     if (inp.zl > cfg.UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return 'freno'; }
     const avance = curvaExpo(zonaMuerta(inp.ly));
-    const giro = curvaExpo(zonaMuerta(inp.lx)) * cfg.GANANCIA_GIRO;
+    const giro = limitar(curvaExpo(zonaMuerta(inp.lx)) * cfg.GIRO_ZIGZAG
+               + curvaExpo(zonaMuerta(inp.rx)) * cfg.GANANCIA_GIRO, -1, 1);
     let izq = avance + giro, der = avance - giro;
     const m = Math.max(Math.abs(izq), Math.abs(der));
     if (m > 1) { izq /= m; der /= m; }
@@ -1066,28 +1075,28 @@ function resetRound() {
   sim.opp = S.opp === 'block' ? newBlock(0.16) : S.opp === 'ai' ? newRobot(0.16, Math.PI, 0x6b1f1f) : null;
   sim.st = { parada: sim.st ? sim.st.parada : true, salIzq: 0, salDer: 0 };
   sim.ai.st = { parada: true, salIzq: 0, salDer: 0 };
-  sim.ai.fw = makeFw({ LIMITE_NORMAL: 0.55, LIMITE_ATAQUE: 0.7, RAMPA: 5, GANANCIA_GIRO: 0.8, EXPO: 0.2, ZONA_MUERTA: 0.05, UMBRAL_FRENO: 0.5, MOTOR_IZQ_EN_A: true, INVERTIR_IZQ: false, INVERTIR_DER: false });
+  sim.ai.fw = makeFw({ LIMITE_NORMAL: 0.55, LIMITE_ATAQUE: 0.7, RAMPA: 5, GANANCIA_GIRO: 0.8, GIRO_ZIGZAG: 0.3, EXPO: 0.2, ZONA_MUERTA: 0.05, UMBRAL_FRENO: 0.5, MOTOR_IZQ_EN_A: true, INVERTIR_IZQ: false, INVERTIR_DER: false });
   sim.t = 0; sim.over = false; sim.result = '';
   if (scene3d) scene3d.syncOpponent();
 }
 
 function aiInput(ai, me, t) {
-  const inp = { conectado: true, lx: 0, ly: 0, zr: 0, zl: 0, parar: false, rearmar: true };
+  const inp = { conectado: true, lx: 0, ly: 0, rx: 0, zr: 0, zl: 0, parar: false, rearmar: true };
   if (t < 1.0 || me.out) return inp;
   const err = wrap(Math.atan2(me.y - ai.y, me.x - ai.x) - ai.th);
-  inp.lx = limitar(-err * 1.6, -1, 1);
+  inp.rx = limitar(-err * 1.6, -1, 1);
   inp.ly = Math.cos(err) > 0.6 ? 0.9 : 0.15;
   inp.zr = Math.abs(err) < 0.25 ? 1 : 0;
   const r = Math.hypot(ai.x, ai.y);
   if (r > RING_R - 0.07) {
     const e2 = wrap(Math.atan2(-ai.y, -ai.x) - ai.th);
-    if (Math.abs(e2) > 1.3) { inp.ly = -0.7; inp.lx = limitar(e2 > 0 ? 1 : -1, -1, 1); inp.zr = 0; }
+    if (Math.abs(e2) > 1.3) { inp.ly = -0.7; inp.rx = e2 > 0 ? -1 : 1; inp.zr = 0; }
   }
   return inp;
 }
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
-let input = { conectado: true, lx: 0, ly: 0, zr: 0, zl: 0, parar: false, rearmar: false };
+let input = { conectado: true, lx: 0, ly: 0, rx: 0, zr: 0, zl: 0, parar: false, rearmar: false };
 function controlTick(dt) {
   const inp = Object.assign({}, input, { conectado: input.conectado && !sim.lossOfSignal });
   sim.mode = FW.pasoControl(sim.st, inp, dt);
@@ -1145,7 +1154,7 @@ function endRound(who) {
    6. Entrada: teclado, mando real (Gamepad API) y táctil
    ========================================================= */
 const keys = new Set();
-const touchState = { lx: 0, ly: 0, l2: 0, r2: 0, x: false, t: false };
+const touchState = { lx: 0, ly: 0, rx: 0, l2: 0, r2: 0, x: false, t: false };
 let lastSource = 'Teclado', resetEdge = false, prevShare = false;
 window.addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input, select, textarea')) return;
@@ -1165,7 +1174,7 @@ function readGamepad() {
     if (!gp || !gp.connected || gp.axes.length < 2) continue;
     const b = i => gp.buttons[i] || { pressed: false, value: 0 };
     return {
-      id: gp.id, lx: gp.axes[0], ly: -gp.axes[1],
+      id: gp.id, lx: gp.axes[0], ly: -gp.axes[1], rx: gp.axes.length > 2 ? gp.axes[2] : 0,
       l2: b(6).value || (b(6).pressed ? 1 : 0), r2: b(7).value || (b(7).pressed ? 1 : 0),
       x: b(0).pressed, t: b(3).pressed, share: b(8).pressed
     };
@@ -1177,22 +1186,24 @@ function readInput() {
   const k = n => keys.has(n);
   const kb = {
     ly: (k('w') || k('arrowup') ? 1 : 0) - (k('s') || k('arrowdown') ? 1 : 0),
-    lx: (k('d') || k('arrowright') ? 1 : 0) - (k('a') || k('arrowleft') ? 1 : 0),
+    lx: (k('d') ? 1 : 0) - (k('a') ? 1 : 0),
+    rx: (k('arrowright') ? 1 : 0) - (k('arrowleft') ? 1 : 0),
     r2: k('shift') ? 1 : 0, l2: k('space') ? 1 : 0, x: k('x'), t: k('t')
   };
   const gp = readGamepad();
   if (gp) {
     if (gp.share && !prevShare) resetEdge = true;
     prevShare = gp.share;
-    if (Math.abs(gp.lx) > 0.15 || Math.abs(gp.ly) > 0.15 || gp.r2 > 0.05 || gp.l2 > 0.05 || gp.x || gp.t) lastSource = 'Mando · ' + (/057e|pro controller|switch|nintendo/i.test(gp.id) ? 'Switch' : 'gamepad');
+    if (Math.abs(gp.lx) > 0.15 || Math.abs(gp.ly) > 0.15 || Math.abs(gp.rx) > 0.15 || gp.r2 > 0.05 || gp.l2 > 0.05 || gp.x || gp.t) lastSource = 'Mando · ' + (/057e|pro controller|switch|nintendo/i.test(gp.id) ? 'Switch' : 'gamepad');
   }
-  const g = gp || { lx: 0, ly: 0, r2: 0, l2: 0, x: false, t: false };
+  const g = gp || { lx: 0, ly: 0, rx: 0, r2: 0, l2: 0, x: false, t: false };
   const ts = touchState;
-  if (Math.abs(ts.lx) + Math.abs(ts.ly) + ts.r2 + ts.l2 > 0 || ts.x || ts.t) lastSource = 'Táctil';
+  if (Math.abs(ts.lx) + Math.abs(ts.ly) + Math.abs(ts.rx) + ts.r2 + ts.l2 > 0 || ts.x || ts.t) lastSource = 'Táctil';
   input = {
     conectado: true,
     lx: limitar(pickAxis(kb.lx, g.lx, ts.lx), -1, 1),
     ly: limitar(pickAxis(kb.ly, g.ly, ts.ly), -1, 1),
+    rx: limitar(pickAxis(kb.rx, g.rx, ts.rx), -1, 1),
     zr: Math.max(kb.r2, g.r2, ts.r2), zl: Math.max(kb.l2, g.l2, ts.l2),
     parar: kb.x || g.x || ts.x, rearmar: kb.t || g.t || ts.t
   };
@@ -1457,7 +1468,7 @@ function refreshPins() {
 // Controles de ajustes
 const RANGES = [
   ['sNormal', 'normal', v => v + ' %'], ['sAttack', 'attack', v => v + ' %'], ['sRamp', 'ramp', v => fmt(v, 1) + '/s'],
-  ['sTurn', 'turn', v => v + ' %'], ['sExpo', 'expo', v => v + ' %'], ['sDead', 'dead', v => v + ' %'], ['sBrake', 'brake', v => v + ' %'],
+  ['sTurn', 'turn', v => v + ' %'], ['sZig', 'zig', v => v + ' %'], ['sExpo', 'expo', v => v + ' %'], ['sDead', 'dead', v => v + ' %'], ['sBrake', 'brake', v => v + ' %'],
   ['sVbat', 'vbat', v => fmt(v, 1) + ' V'], ['sMu', 'mu', v => fmt(v, 2)]
 ];
 const CHECKS = [['cLeftOnA', 'leftOnA'], ['cInvL', 'invL'], ['cInvR', 'invR'], ['pLeftOnA', 'pLeftOnA'], ['pInvL', 'pInvL'], ['pInvR', 'pInvR']];
@@ -1516,7 +1527,7 @@ function generateFirmware() {
   const vals = {
     MAC: MAC_RE.test(S.mac) ? S.mac.toUpperCase() : DEFAULTS.mac,
     IZQ_EN_A: String(!!S.leftOnA), INV_IZQ: String(!!S.invL), INV_DER: String(!!S.invR),
-    NORMAL: ff(S.normal / 100), ATTACK: ff(S.attack / 100), RAMP: ff(S.ramp), TURN: ff(S.turn / 100),
+    NORMAL: ff(S.normal / 100), ATTACK: ff(S.attack / 100), RAMP: ff(S.ramp), TURN: ff(S.turn / 100), ZIG: ff(S.zig / 100),
     EXPO: ff(S.expo / 100), DEADZONE: ff(S.dead / 100), BRAKE: ff(S.brake / 100)
   };
   for (const p of PIN_NAMES) vals[p] = pinValueForCode(p, rep);
@@ -1605,6 +1616,7 @@ function updatePanel() {
   $('dzRing').style.width = $('dzRing').style.height = (dz * 80 + 2) + 'px';
   $('stickDot').style.transform = `translate(${input.lx * 38}px, ${-input.ly * 38}px)`;
   $('barL2').style.width = input.zl * 100 + '%'; $('valL2').textContent = Math.round(input.zl * 1023);
+  const rxb = $('barRX'); rxb.style.left = (50 + Math.min(0, input.rx) * 50) + '%'; rxb.style.width = Math.abs(input.rx) * 50 + '%'; $('valRX').textContent = Math.round(input.rx * 512);
   $('barR2').style.width = input.zr * 100 + '%'; $('valR2').textContent = Math.round(input.zr * 1023);
   $('pbX').classList.toggle('on', input.parar); $('pbT').classList.toggle('on', input.rearmar);
   document.querySelectorAll('#pled i').forEach((el, i) => el.classList.toggle('on', !!(LEDS[m] & (1 << i))));

@@ -17,7 +17,8 @@ Abre `simulador/index.html` en Chrome o Edge (necesita internet para cargar thre
 | Teclado | Mando Switch | Acción |
 |---|---|---|
 | W / S | Stick izquierdo vertical | Avance y retroceso |
-| A / D | Stick izquierdo horizontal | Giro diferencial |
+| A / D | Stick izquierdo horizontal | Curva suave para hacer zigzag |
+| ← / → | Stick derecho horizontal | Giro fuerte; sin avanzar, gira sobre sí mismo |
 | Shift | ZR | Ataque: sube el límite de PWM |
 | Espacio | ZL | Freno corto |
 | X | B (botón de abajo) | Parada inmediata (STBY a LOW) |

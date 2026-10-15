@@ -24,7 +24,8 @@
 
   Controles (posición de los botones en el mando de Switch)
    Stick izquierdo vertical    avance y retroceso
-   Stick izquierdo horizontal  giro diferencial
+   Stick izquierdo horizontal  curva suave para zigzag (GIRO_ZIGZAG)
+   Stick derecho horizontal    giro fuerte; sin avanzar, gira sobre sí mismo
    ZR                          ataque: sube el límite de potencia
    ZL                          freno corto (IN1 = IN2 = HIGH)
    B (botón de abajo)          parada inmediata (STBY = LOW)
@@ -61,7 +62,8 @@ const bool INVERTIR_DER   = false;
 const float LIMITE_NORMAL = 0.7f;  // fracción de PWM sin ZR
 const float LIMITE_ATAQUE = 0.85f;  // fracción de PWM con ZR pulsado
 const float RAMPA         = 6.0f;  // cambio máximo de PWM por segundo (1 = 100 %)
-const float GANANCIA_GIRO = 0.75f;
+const float GANANCIA_GIRO = 0.75f;  // stick derecho: giro fuerte
+const float GIRO_ZIGZAG   = 0.35f;  // stick izquierdo horizontal: curva suave
 const float EXPO          = 0.4f;  // 0 = lineal; cerca de 1 = muy suave en el centro
 const float ZONA_MUERTA   = 0.08f;
 const float UMBRAL_FRENO  = 0.2f;  // recorrido de ZL que activa el freno
@@ -77,7 +79,7 @@ const bool     DEPURAR       = false;  // true: imprime el estado cada 250 ms
 enum Modo { DESCONECTADO, PARADA, FRENO, NORMAL, ATAQUE };
 const char* NOMBRE_MODO[] = { "desconectado", "parada", "freno", "normal", "ataque" };
 
-struct Entrada { bool conectado; float lx, ly, zr, zl; bool parar, rearmar; };
+struct Entrada { bool conectado; float lx, ly, rx, zr, zl; bool parar, rearmar; };
 struct Estado  { bool parada; float salIzq, salDer; };
 struct Motor   { int pwm, in1, in2, canal; bool invertir; };
 
@@ -107,13 +109,15 @@ float rampa(float actual, float objetivo, float paso) {
 Modo pasoControl(Estado& st, const Entrada& in, float dt) {
   if (!in.conectado) { st.parada = true; st.salIzq = st.salDer = 0; return DESCONECTADO; }
   if (in.parar) st.parada = true;
-  bool centrado = zonaMuerta(in.lx) == 0 && zonaMuerta(in.ly) == 0 && in.zr < 0.1f;
+  bool centrado = zonaMuerta(in.lx) == 0 && zonaMuerta(in.ly) == 0 && zonaMuerta(in.rx) == 0 && in.zr < 0.1f;
   if (st.parada && in.rearmar && centrado) st.parada = false;
   if (st.parada) { st.salIzq = st.salDer = 0; return PARADA; }
   if (in.zl > UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return FRENO; }
 
   float avance = curvaExpo(zonaMuerta(in.ly));
-  float giro = curvaExpo(zonaMuerta(in.lx)) * GANANCIA_GIRO;
+  float giro = curvaExpo(zonaMuerta(in.lx)) * GIRO_ZIGZAG
+             + curvaExpo(zonaMuerta(in.rx)) * GANANCIA_GIRO;
+  giro = limitar(giro, -1, 1);
   float izq = avance + giro;
   float der = avance - giro;
   float m = fmaxf(fabsf(izq), fabsf(der));
@@ -278,11 +282,12 @@ void loop() {
 
   if (BP32.update() && mando && mando->hasData()) ultimoPaquete = ahora;
 
-  Entrada in = { false, 0, 0, 0, 0, false, false };
+  Entrada in = { false, 0, 0, 0, 0, 0, false, false };
   in.conectado = mando && mando->isConnected() && (ahora - ultimoPaquete) < SIN_SENAL_MS;
   if (in.conectado) {
     in.lx = limitar(mando->axisX() / 512.0f, -1, 1);
     in.ly = limitar(-mando->axisY() / 512.0f, -1, 1);   // arriba = negativo en Bluepad32
+    in.rx = limitar(mando->axisRX() / 512.0f, -1, 1);
     in.zr = mando->throttle() / 1023.0f;
     in.zl = mando->brake() / 1023.0f;
     in.parar = mando->a();      // botón de abajo (B en Switch)
@@ -310,7 +315,7 @@ void loop() {
 
   if ((DEPURAR || !pinesListos) && ahora - ultimaTraza >= 250) {
     ultimaTraza = ahora;
-    Serial.printf("%-12s lx=%+.2f ly=%+.2f zr=%.2f zl=%.2f  izq=%+.2f der=%+.2f\n",
-                  NOMBRE_MODO[modo], in.lx, in.ly, in.zr, in.zl, estado.salIzq, estado.salDer);
+    Serial.printf("%-12s lx=%+.2f ly=%+.2f rx=%+.2f zr=%.2f zl=%.2f  izq=%+.2f der=%+.2f\n",
+                  NOMBRE_MODO[modo], in.lx, in.ly, in.rx, in.zr, in.zl, estado.salIzq, estado.salDer);
   }
 }
