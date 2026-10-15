@@ -118,7 +118,7 @@ h3 { margin: 0; font: 600 13px/1.3 var(--f-body); }
 .note b { color: var(--ink); font-weight: 600; }
 .mono { font-family: var(--f-mono); }
 
-/* DS4 */
+/* Mando */
 .ds4 { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: center; }
 .stickviz { width: 96px; height: 96px; border-radius: 50%; border: 1px solid var(--line); background:
   radial-gradient(circle, transparent 13px, transparent 14px), var(--soft); position: relative; }
@@ -128,7 +128,7 @@ h3 { margin: 0; font: 600 13px/1.3 var(--f-body); }
 .stickviz .dz { position: absolute; left: 50%; top: 50%; border: 1px dashed var(--muted); border-radius: 50%; transform: translate(-50%, -50%); opacity: .5; }
 .stickviz .dot { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--accent); z-index: 1; }
 .trig { display: grid; gap: 7px; min-width: 0; }
-.trow { display: grid; grid-template-columns: 26px minmax(0, 1fr) 40px; gap: 8px; align-items: center; font: 500 12px var(--f-mono); }
+.trow { display: grid; grid-template-columns: 26px minmax(0, 1fr) 44px; gap: 8px; align-items: center; font: 500 12px var(--f-mono); }
 .bar { height: 8px; border-radius: 4px; background: var(--soft); border: 1px solid var(--line); overflow: hidden; position: relative; }
 .bar > span { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent); }
 .bar.hot > span { background: var(--hot); }
@@ -136,7 +136,9 @@ h3 { margin: 0; font: 600 13px/1.3 var(--f-body); }
 .btnrow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .pbtn { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); font: 600 13px var(--f-mono); color: var(--muted); }
 .pbtn.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
-.lightbar { flex: 1; min-width: 60px; height: 10px; border-radius: 5px; background: #0040ff; box-shadow: 0 0 12px -2px currentColor; }
+.pled { display: flex; gap: 5px; margin-left: 6px; }
+.pled i { width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--line); background: var(--soft); }
+.pled i.on { background: var(--ok); border-color: var(--ok); box-shadow: 0 0 6px var(--ok); }
 .srcline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 
 .btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-weight: 500; font-size: 13px; }
@@ -235,7 +237,7 @@ ul.plain { padding-left: 18px; }
   <section class="stage" id="stage" aria-label="Dohyo 3D">
     <div class="hud hud-tl">
       <div class="brand">
-        <span class="eyebrow">Mini-sumo · ESP32 + DualShock 4</span>
+        <span class="eyebrow">Mini-sumo · ESP32 + mando Switch</span>
         <h1>Simulador Sumo</h1>
       </div>
       <div class="chips">
@@ -249,23 +251,23 @@ ul.plain { padding-left: 18px; }
         <button id="camOrbit" aria-pressed="true">Orbital</button>
         <button id="camChase" aria-pressed="false">Persecución</button>
         <button id="camTop" aria-pressed="false">Cenital</button>
-        <button id="btnRound" title="Nueva ronda (R o SHARE)">Ronda</button>
+        <button id="btnRound" title="Nueva ronda (R o −)">Ronda</button>
         <button id="btnTouch" aria-pressed="false" title="Mostrar el mando táctil">Táctil</button>
       </div>
     </div>
-    <div class="banner" id="banner"><strong id="bannerT">Robot en parada</strong><p id="bannerP">Pulsa <kbd>T</kbd> o △ con el stick centrado para armarlo.</p></div>
+    <div class="banner" id="banner"><strong id="bannerT">Robot en parada</strong><p id="bannerP">Pulsa <kbd>T</kbd> o X del mando con el stick centrado para armarlo.</p></div>
     <div class="speed"><b id="spd">0.00</b><span>m/s</span></div>
     <div class="keys">
-      <span><kbd>W</kbd><kbd>S</kbd> avance</span><span><kbd>A</kbd><kbd>D</kbd> giro</span><span><kbd>Shift</kbd> R2 ataque</span>
-      <span><kbd>Espacio</kbd> L2 freno</span><span><kbd>X</kbd> parada</span><span><kbd>T</kbd> △ armar</span><span><kbd>R</kbd> ronda</span>
+      <span><kbd>W</kbd><kbd>S</kbd> avance</span><span><kbd>A</kbd><kbd>D</kbd> giro</span><span><kbd>Shift</kbd> ZR ataque</span>
+      <span><kbd>Espacio</kbd> ZL freno</span><span><kbd>X</kbd> B parada</span><span><kbd>T</kbd> X armar</span><span><kbd>R</kbd> ronda</span>
     </div>
     <div class="touch" id="touch" hidden>
       <div class="tstick" id="tstick" aria-label="Stick izquierdo"><div class="tknob" id="tknob"></div></div>
       <div class="tbtns">
-        <button id="tL2" aria-label="L2 freno">L2</button>
-        <button id="tR2" aria-label="R2 ataque">R2</button>
-        <button id="tX" aria-label="Parada">✕</button>
-        <button id="tT" aria-label="Armar">△</button>
+        <button id="tL2" aria-label="ZL freno">ZL</button>
+        <button id="tR2" aria-label="ZR ataque">ZR</button>
+        <button id="tX" aria-label="B parada">B</button>
+        <button id="tT" aria-label="X armar">X</button>
       </div>
     </div>
   </section>
@@ -281,17 +283,17 @@ ul.plain { padding-left: 18px; }
     <!-- CONTROL -->
     <div class="pane" id="p-control" role="tabpanel">
       <section class="sec">
-        <div class="sec-h"><h2>DualShock 4</h2><span class="tag" id="connTag">Conectado</span></div>
+        <div class="sec-h"><h2>Mando Switch</h2><span class="tag" id="connTag">Conectado</span></div>
         <div class="ds4">
           <div class="stickviz"><div class="dz" id="dzRing"></div><div class="dot" id="stickDot"></div></div>
           <div class="trig">
-            <div class="trow"><span>L2</span><div class="bar ink"><span id="barL2"></span></div><span id="valL2">0</span></div>
-            <div class="trow"><span>R2</span><div class="bar hot"><span id="barR2"></span></div><span id="valR2">0</span></div>
-            <div class="btnrow"><span class="pbtn" id="pbX">✕</span><span class="pbtn" id="pbT">△</span><span class="lightbar" id="lightbar" title="Barra de luz del mando"></span></div>
+            <div class="trow"><span>ZL</span><div class="bar ink"><span id="barL2"></span></div><span id="valL2">0</span></div>
+            <div class="trow"><span>ZR</span><div class="bar hot"><span id="barR2"></span></div><span id="valR2">0</span></div>
+            <div class="btnrow"><span class="pbtn" id="pbX" title="B: parada">B</span><span class="pbtn" id="pbT" title="X: armar">X</span><span class="pled" id="pled" title="LED de jugador del mando"><i></i><i></i><i></i><i></i></span></div>
           </div>
         </div>
         <div class="srcline">
-          <p class="note">Un DS4 real conectado al ordenador por USB o Bluetooth también funciona aquí.</p>
+          <p class="note">Tu mando conectado al ordenador por USB o Bluetooth también funciona aquí.</p>
           <button class="btn" id="btnLoss" aria-pressed="false">Cortar señal</button>
         </div>
       </section>
@@ -335,20 +337,20 @@ ul.plain { padding-left: 18px; }
 
       <section class="sec">
         <h2>Firmware</h2>
-        <div class="field"><label for="sNormal">Límite normal (PWM sin R2)</label><div class="range"><input type="range" id="sNormal" min="20" max="100" step="1"><output id="oNormal"></output></div></div>
-        <div class="field"><label for="sAttack">Límite de ataque (R2 a fondo)</label><div class="range"><input type="range" id="sAttack" min="20" max="100" step="1"><output id="oAttack"></output></div></div>
+        <div class="field"><label for="sNormal">Límite normal (PWM sin ZR)</label><div class="range"><input type="range" id="sNormal" min="20" max="100" step="1"><output id="oNormal"></output></div></div>
+        <div class="field"><label for="sAttack">Límite de ataque (ZR pulsado)</label><div class="range"><input type="range" id="sAttack" min="20" max="100" step="1"><output id="oAttack"></output></div></div>
         <p class="note" id="voltNote"></p>
         <div class="field"><label for="sRamp">Rampa (cambio de PWM por segundo)</label><div class="range"><input type="range" id="sRamp" min="1" max="20" step="0.5"><output id="oRamp"></output></div></div>
         <div class="field"><label for="sTurn">Ganancia de giro</label><div class="range"><input type="range" id="sTurn" min="20" max="100" step="1"><output id="oTurn"></output></div></div>
         <div class="field"><label for="sExpo">Expo del stick</label><div class="range"><input type="range" id="sExpo" min="0" max="90" step="5"><output id="oExpo"></output></div></div>
         <div class="field"><label for="sDead">Zona muerta</label><div class="range"><input type="range" id="sDead" min="2" max="20" step="1"><output id="oDead"></output></div></div>
-        <div class="field"><label for="sBrake">Umbral de L2 para frenar</label><div class="range"><input type="range" id="sBrake" min="5" max="80" step="5"><output id="oBrake"></output></div></div>
+        <div class="field"><label for="sBrake">Umbral de ZL para frenar</label><div class="range"><input type="range" id="sBrake" min="5" max="80" step="5"><output id="oBrake"></output></div></div>
         <div class="checks">
           <label><input type="checkbox" id="cLeftOnA"> Motor izquierdo en la salida A (AO1/AO2)</label>
           <label><input type="checkbox" id="cInvL"> Invertir motor izquierdo</label>
           <label><input type="checkbox" id="cInvR"> Invertir motor derecho</label>
         </div>
-        <div class="field"><label for="sMac">MAC maestra del mando (PS4.begin)</label><input type="text" id="sMac" spellcheck="false" autocomplete="off"><span class="msg" id="macMsg"></span></div>
+        <div class="field"><label for="sMac">MAC del mando (solo se acepta este)</label><input type="text" id="sMac" spellcheck="false" autocomplete="off"><span class="msg" id="macMsg"></span></div>
       </section>
 
       <section class="sec">
@@ -393,11 +395,11 @@ ul.plain { padding-left: 18px; }
       <section class="sec">
         <h2>Cómo cargarlo</h2>
         <ol class="steps">
-          <li>Arduino IDE → Gestor de placas → <b>esp32</b> de Espressif, versión <b>2.0.17</b>. La librería del mando no funciona con el núcleo 3.x.</li>
-          <li>Instala la librería <b>PS4Controller</b> (repositorio aed3/PS4-esp32).</li>
-          <li>Placa <b>ESP32 Dev Module</b>, velocidad de subida 921600 y monitor serie a 115200.</li>
-          <li>Conecta el mando al PC por USB y, con SixaxisPairTool, lee su MAC maestra o cámbiala. Escribe esa MAC en Ajustes.</li>
-          <li>Sube el sketch <b>con las ruedas en el aire</b>, pulsa PS en el mando y arma con △.</li>
+          <li>Arduino IDE → Preferencias → «Gestor de URLs adicionales de tarjetas»: añade <span class="mono" style="word-break:break-all">https://raw.githubusercontent.com/ricardoquesada/esp32-arduino-lib-builder/master/bluepad32_files/package_esp32_bluepad32_index.json</span></li>
+          <li>Gestor de placas → instala <b>esp32_bluepad32</b>. Trae la librería Bluepad32, que entiende mandos de Switch.</li>
+          <li>Placa <b>ESP32 Arduino (Bluepad32) → ESP32 Dev Module</b> y monitor serie a 115200.</li>
+          <li>Escribe en Ajustes la MAC del mando. Con ella el robot ignora cualquier otro mando que haya cerca.</li>
+          <li>Sube el sketch <b>con las ruedas en el aire</b>, mantén pulsado el botón de sincronización del mando hasta que conecte y arma con X.</li>
         </ol>
       </section>
       <section class="sec">
@@ -405,12 +407,12 @@ ul.plain { padding-left: 18px; }
         <div class="tblwrap"><table>
           <thead><tr><th>Simulador</th><th>Mando real</th><th>Firmware</th></tr></thead>
           <tbody>
-            <tr><td>W / S</td><td>Stick izq. vertical</td><td class="mono">PS4.LStickY()</td></tr>
-            <tr><td>A / D</td><td>Stick izq. horizontal</td><td class="mono">PS4.LStickX()</td></tr>
-            <tr><td>Shift</td><td>R2</td><td class="mono">PS4.R2Value()</td></tr>
-            <tr><td>Espacio</td><td>L2</td><td class="mono">PS4.L2Value()</td></tr>
-            <tr><td>X</td><td>✕</td><td class="mono">PS4.Cross()</td></tr>
-            <tr><td>T</td><td>△ / OPTIONS</td><td class="mono">PS4.Triangle()</td></tr>
+            <tr><td>W / S</td><td>Stick izq. vertical</td><td class="mono">mando-&gt;axisY()</td></tr>
+            <tr><td>A / D</td><td>Stick izq. horizontal</td><td class="mono">mando-&gt;axisX()</td></tr>
+            <tr><td>Shift</td><td>ZR</td><td class="mono">mando-&gt;throttle()</td></tr>
+            <tr><td>Espacio</td><td>ZL</td><td class="mono">mando-&gt;brake()</td></tr>
+            <tr><td>X</td><td>B (abajo)</td><td class="mono">mando-&gt;a()</td></tr>
+            <tr><td>T</td><td>X (arriba)</td><td class="mono">mando-&gt;y()</td></tr>
             <tr><td>Cortar señal</td><td>Mando apagado o lejos</td><td class="mono">sin paquetes 300 ms</td></tr>
           </tbody>
         </table></div>
@@ -454,9 +456,9 @@ ul.plain { padding-left: 18px; }
           <tbody>
             <tr><td class="mono">H</td><td class="mono">L</td><td class="mono">duty</td><td>Avance, velocidad según duty</td></tr>
             <tr><td class="mono">L</td><td class="mono">H</td><td class="mono">duty</td><td>Retroceso</td></tr>
-            <tr><td class="mono">H</td><td class="mono">H</td><td class="mono">—</td><td>Freno corto (L2)</td></tr>
+            <tr><td class="mono">H</td><td class="mono">H</td><td class="mono">—</td><td>Freno corto (ZL)</td></tr>
             <tr><td class="mono">L</td><td class="mono">L</td><td class="mono">—</td><td>Libre, rueda suelta</td></tr>
-            <tr><td colspan="3" class="mono">STBY = L</td><td>Salidas en alta impedancia (✕)</td></tr>
+            <tr><td colspan="3" class="mono">STBY = L</td><td>Salidas en alta impedancia (B)</td></tr>
           </tbody>
         </table></div>
       </section>
@@ -464,10 +466,10 @@ ul.plain { padding-left: 18px; }
         <h2>Prueba de giro</h2>
         <ol class="steps">
           <li>Robot sobre un soporte, ruedas en el aire, batería cargada.</li>
-          <li>Arma con △ y empuja el stick un poco hacia delante.</li>
+          <li>Arma con X y empuja el stick un poco hacia delante.</li>
           <li>Si gira la rueda equivocada, cambia «Motor izquierdo en la salida A».</li>
           <li>Si una rueda va hacia atrás, marca «Invertir» en ese motor.</li>
-          <li>Comprueba ✕: las dos ruedas deben quedar libres al instante.</li>
+          <li>Comprueba B: las dos ruedas deben quedar libres al instante.</li>
           <li>Apaga el mando: el robot debe pararse en menos de medio segundo.</li>
         </ol>
         <p class="note">Puedes ensayarlo antes aquí: en Ajustes, sección «Cableado físico simulado», cruza un motor y corrígelo desde el firmware.</p>
@@ -485,7 +487,7 @@ ul.plain { padding-left: 18px; }
 </div>
 
 <script type="text/plain" id="tplFirmware">/*
-  Robot de mini-sumo RC: ESP32-WROOM-32 + DualShock 4 + TB6612FNG
+  Robot de mini-sumo RC: ESP32-WROOM-32 + mando Switch (Bluetooth) + TB6612FNG
   PCB CUyLAB V3.1 · LiPo 2S 500 mAh · 2 motores N20 6 V 500 RPM
 
   Generado por el Simulador Sumo ESP32. La función pasoControl() es la
@@ -493,30 +495,40 @@ ul.plain { padding-left: 18px; }
   robot real responde igual al mando.
 
   Preparación
-   1. Arduino IDE > Gestor de placas > "esp32" de Espressif, versión 2.0.17
-      (la librería PS4Controller no funciona con el núcleo 3.x).
-   2. Librería "PS4Controller" (github.com/aed3/PS4-esp32).
-   3. Placa "ESP32 Dev Module". Monitor serie a 115200 baudios.
-   4. El mando solo se conecta a la MAC maestra que tiene guardada.
-      Léela o cámbiala con SixaxisPairTool (mando por USB al PC) y
-      escríbela en PS4_MAC.
+   1. Arduino IDE > Preferencias > "Gestor de URLs adicionales de tarjetas":
+      https://raw.githubusercontent.com/ricardoquesada/esp32-arduino-lib-builder/master/bluepad32_files/package_esp32_bluepad32_index.json
+   2. Gestor de placas > instala "esp32_bluepad32" (trae la librería Bluepad32).
+   3. Placa: "ESP32 Arduino (Bluepad32)" > "ESP32 Dev Module".
+      Monitor serie a 115200 baudios.
+   4. Con SOLO_ESTE_MANDO a 1 solo se acepta el mando de MAC_MANDO.
+      Si tu mando no conecta, ponlo a 0 y mira en el monitor serie la
+      dirección con la que se presenta.
    5. Completa los 7 GPIO. Si alguno vale -1 o no sirve como salida,
       el programa no activa ninguna salida y lo avisa por el monitor serie.
 
-  Controles
+  Emparejar: enciende el ESP32 y mantén pulsado el botón de sincronización
+  del mando (el pequeño junto al USB) hasta que los LED recorran de lado a
+  lado. Si el mando estaba emparejado con una Switch, déjala apagada.
+
+  Controles (posición de los botones en el mando de Switch)
    Stick izquierdo vertical    avance y retroceso
    Stick izquierdo horizontal  giro diferencial
-   R2 (analógico)              ataque: sube el límite de potencia
-   L2                          freno corto (IN1 = IN2 = HIGH)
-   X                           parada inmediata (STBY = LOW)
-   Triángulo u OPTIONS         rearmar, con el stick centrado y R2 suelto
+   ZR                          ataque: sube el límite de potencia
+   ZL                          freno corto (IN1 = IN2 = HIGH)
+   B (botón de abajo)          parada inmediata (STBY = LOW)
+   X (botón de arriba)         rearmar, con el stick centrado y ZR suelto
    El robot arranca en parada y vuelve a ella si se pierde el mando.
 */
 
-#include <PS4Controller.h>
+#include <Bluepad32.h>
 
 // ---------- Mando ----------
-const char* PS4_MAC = "{{MAC}}";
+#define SOLO_ESTE_MANDO 1                 // 1: ignora cualquier otro mando
+const char* MAC_MANDO = "{{MAC}}";
+
+#if SOLO_ESTE_MANDO
+#include <uni.h>
+#endif
 
 // ---------- GPIO del TB6612FNG (-1 = sin confirmar) ----------
 const int PIN_PWMA = {{PWMA}};
@@ -534,16 +546,16 @@ const bool INVERTIR_DER   = {{INV_DER}};
 
 // ---------- Conducción ----------
 // Con la batería llena (8,4 V), un 71 % de PWM equivale a unos 6 V en el motor.
-const float LIMITE_NORMAL = {{NORMAL}};  // fracción de PWM sin R2
-const float LIMITE_ATAQUE = {{ATTACK}};  // fracción de PWM con R2 a fondo
+const float LIMITE_NORMAL = {{NORMAL}};  // fracción de PWM sin ZR
+const float LIMITE_ATAQUE = {{ATTACK}};  // fracción de PWM con ZR pulsado
 const float RAMPA         = {{RAMP}};  // cambio máximo de PWM por segundo (1 = 100 %)
 const float GANANCIA_GIRO = {{TURN}};
 const float EXPO          = {{EXPO}};  // 0 = lineal; cerca de 1 = muy suave en el centro
 const float ZONA_MUERTA   = {{DEADZONE}};
-const float UMBRAL_FRENO  = {{BRAKE}};  // recorrido de L2 que activa el freno
+const float UMBRAL_FRENO  = {{BRAKE}};  // recorrido de ZL que activa el freno
 
 const uint32_t PERIODO_MS    = 10;     // bucle de control a 100 Hz
-const uint32_t SIN_SENAL_MS  = 300;    // sin paquetes del mando durante este tiempo = parada
+const uint32_t SIN_SENAL_MS  = 300;    // sin datos del mando durante este tiempo = parada
 const uint32_t PWM_FREQ      = 20000;  // 20 kHz, fuera del rango audible
 const uint8_t  PWM_BITS      = 8;
 const int      PWM_MAX       = (1 << PWM_BITS) - 1;
@@ -553,7 +565,7 @@ const bool     DEPURAR       = false;  // true: imprime el estado cada 250 ms
 enum Modo { DESCONECTADO, PARADA, FRENO, NORMAL, ATAQUE };
 const char* NOMBRE_MODO[] = { "desconectado", "parada", "freno", "normal", "ataque" };
 
-struct Entrada { bool conectado; float lx, ly, r2, l2; bool cruz, rearmar; };
+struct Entrada { bool conectado; float lx, ly, zr, zl; bool parar, rearmar; };
 struct Estado  { bool parada; float salIzq, salDer; };
 struct Motor   { int pwm, in1, in2, canal; bool invertir; };
 
@@ -561,7 +573,8 @@ Estado estado = { true, 0, 0 };
 Motor motorIzq, motorDer;
 bool pinesListos = false;
 uint32_t ultimoPaso = 0, ultimaTraza = 0;
-volatile uint32_t ultimoPaquete = 0;
+uint32_t ultimoPaquete = 0;
+ControllerPtr mando = nullptr;
 int ultimoModo = -1;
 
 float limitar(float v, float lo, float hi) { return v < lo ? lo : (v > hi ? hi : v); }
@@ -581,11 +594,11 @@ float rampa(float actual, float objetivo, float paso) {
 // Lógica de conducción. Es la misma que ejecuta el simulador.
 Modo pasoControl(Estado& st, const Entrada& in, float dt) {
   if (!in.conectado) { st.parada = true; st.salIzq = st.salDer = 0; return DESCONECTADO; }
-  if (in.cruz) st.parada = true;
-  bool centrado = zonaMuerta(in.lx) == 0 && zonaMuerta(in.ly) == 0 && in.r2 < 0.1f;
+  if (in.parar) st.parada = true;
+  bool centrado = zonaMuerta(in.lx) == 0 && zonaMuerta(in.ly) == 0 && in.zr < 0.1f;
   if (st.parada && in.rearmar && centrado) st.parada = false;
   if (st.parada) { st.salIzq = st.salDer = 0; return PARADA; }
-  if (in.l2 > UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return FRENO; }
+  if (in.zl > UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return FRENO; }
 
   float avance = curvaExpo(zonaMuerta(in.ly));
   float giro = curvaExpo(zonaMuerta(in.lx)) * GANANCIA_GIRO;
@@ -594,11 +607,11 @@ Modo pasoControl(Estado& st, const Entrada& in, float dt) {
   float m = fmaxf(fabsf(izq), fabsf(der));
   if (m > 1) { izq /= m; der /= m; }
 
-  float limite = LIMITE_NORMAL + (LIMITE_ATAQUE - LIMITE_NORMAL) * in.r2;
+  float limite = LIMITE_NORMAL + (LIMITE_ATAQUE - LIMITE_NORMAL) * in.zr;
   float paso = RAMPA * dt;
   st.salIzq = rampa(st.salIzq, izq * limite, paso);
   st.salDer = rampa(st.salDer, der * limite, paso);
-  return in.r2 > 0.1f ? ATAQUE : NORMAL;
+  return in.zr > 0.1f ? ATAQUE : NORMAL;
 }
 
 // ---------- TB6612FNG ----------
@@ -658,19 +671,55 @@ bool pinesValidos() {
 }
 
 // ---------- Mando ----------
-void alRecibirPaquete() { ultimoPaquete = millis(); }
+void alConectar(ControllerPtr ctl) {
+  if (mando == nullptr) {
+    mando = ctl;
+    ultimoPaquete = millis();
+    ultimoModo = -1;
+    Serial.printf("Mando conectado: %s\n", ctl->getModelName().c_str());
+  } else {
+    Serial.println("Ya hay un mando conectado; se ignora el segundo.");
+    ctl->disconnect();
+  }
+}
 
-void colorMando(Modo modo) {
-  if (modo == ultimoModo) return;
+void alDesconectar(ControllerPtr ctl) {
+  if (ctl == mando) {
+    mando = nullptr;
+    Serial.println("Mando desconectado.");
+  }
+}
+
+// Los 4 LED de jugador indican el modo: 1 = normal, 4 = ataque,
+// extremos = parada, centrales = freno. Al armar vibra un instante.
+void ledsMando(Modo modo) {
+  if (modo == ultimoModo || mando == nullptr) return;
+  if (ultimoModo == PARADA && (modo == NORMAL || modo == ATAQUE))
+    mando->playDualRumble(0, 120, 0x60, 0x60);
   ultimoModo = modo;
   switch (modo) {
-    case PARADA: PS4.setLed(255, 0, 0); break;
-    case FRENO:  PS4.setLed(255, 255, 255); break;
-    case ATAQUE: PS4.setLed(255, 80, 0); break;
-    default:     PS4.setLed(0, 60, 255); break;
+    case PARADA: mando->setPlayerLEDs(0x09); break;
+    case FRENO:  mando->setPlayerLEDs(0x06); break;
+    case ATAQUE: mando->setPlayerLEDs(0x0F); break;
+    default:     mando->setPlayerLEDs(0x01); break;
   }
-  PS4.sendToController();
 }
+
+#if SOLO_ESTE_MANDO
+void soloEsteMando() {
+  unsigned int b[6];
+  if (sscanf(MAC_MANDO, "%x:%x:%x:%x:%x:%x", &b[0], &b[1], &b[2], &b[3], &b[4], &b[5]) != 6) {
+    Serial.println("MAC_MANDO no tiene el formato XX:XX:XX:XX:XX:XX; se acepta cualquier mando.");
+    uni_bt_allowlist_set_enabled(false);
+    return;
+  }
+  bd_addr_t addr;
+  for (int i = 0; i < 6; i++) addr[i] = (uint8_t)b[i];
+  uni_bt_allowlist_remove_all();
+  uni_bt_allowlist_add_addr(addr);
+  uni_bt_allowlist_set_enabled(true);
+}
+#endif
 
 void setup() {
   Serial.begin(115200);
@@ -698,9 +747,15 @@ void setup() {
     Serial.println("No se activa ninguna salida. Puedes probar el mando: se imprimirá su estado.");
   }
 
-  PS4.attach(alRecibirPaquete);
-  PS4.begin(PS4_MAC);
-  Serial.printf("Esperando al DualShock 4 (MAC %s). Pulsa PS en el mando.\n", PS4_MAC);
+#if SOLO_ESTE_MANDO
+  soloEsteMando();
+  Serial.printf("Solo se acepta el mando %s.\n", MAC_MANDO);
+#else
+  uni_bt_allowlist_set_enabled(false);
+#endif
+  BP32.setup(&alConectar, &alDesconectar);
+  BP32.enableVirtualDevice(false);
+  Serial.println("Esperando al mando: mantén pulsado su botón de sincronización.");
 }
 
 void loop() {
@@ -709,19 +764,21 @@ void loop() {
   float dt = limitar((ahora - ultimoPaso) / 1000.0f, 0, 0.05f);
   ultimoPaso = ahora;
 
+  if (BP32.update() && mando && mando->hasData()) ultimoPaquete = ahora;
+
   Entrada in = { false, 0, 0, 0, 0, false, false };
-  in.conectado = PS4.isConnected() && (ahora - ultimoPaquete) < SIN_SENAL_MS;
+  in.conectado = mando && mando->isConnected() && (ahora - ultimoPaquete) < SIN_SENAL_MS;
   if (in.conectado) {
-    in.lx = limitar(PS4.LStickX() / 127.0f, -1, 1);
-    in.ly = limitar(PS4.LStickY() / 127.0f, -1, 1);
-    in.r2 = PS4.R2Value() / 255.0f;
-    in.l2 = PS4.L2Value() / 255.0f;
-    in.cruz = PS4.Cross();
-    in.rearmar = PS4.Triangle() || PS4.Options();
+    in.lx = limitar(mando->axisX() / 512.0f, -1, 1);
+    in.ly = limitar(-mando->axisY() / 512.0f, -1, 1);   // arriba = negativo en Bluepad32
+    in.zr = mando->throttle() / 1023.0f;
+    in.zl = mando->brake() / 1023.0f;
+    in.parar = mando->a();      // botón de abajo (B en Switch)
+    in.rearmar = mando->y();    // botón de arriba (X en Switch)
   }
 
   Modo modo = pasoControl(estado, in, dt);
-  if (in.conectado) colorMando(modo); else ultimoModo = -1;
+  if (in.conectado) ledsMando(modo); else ultimoModo = -1;
 
   if (pinesListos) {
     if (modo == DESCONECTADO || modo == PARADA) {
@@ -741,8 +798,8 @@ void loop() {
 
   if ((DEPURAR || !pinesListos) && ahora - ultimaTraza >= 250) {
     ultimaTraza = ahora;
-    Serial.printf("%-12s lx=%+.2f ly=%+.2f r2=%.2f l2=%.2f  izq=%+.2f der=%+.2f\n",
-                  NOMBRE_MODO[modo], in.lx, in.ly, in.r2, in.l2, estado.salIzq, estado.salDer);
+    Serial.printf("%-12s lx=%+.2f ly=%+.2f zr=%.2f zl=%.2f  izq=%+.2f der=%+.2f\n",
+                  NOMBRE_MODO[modo], in.lx, in.ly, in.zr, in.zl, estado.salIzq, estado.salDer);
   }
 }
 </script>
@@ -760,7 +817,7 @@ const PIN_NAMES = ['PWMA', 'AIN1', 'AIN2', 'STBY', 'BIN1', 'BIN2', 'PWMB'];
 const EXAMPLE_PINS = { PWMA: 32, AIN1: 25, AIN2: 26, STBY: 27, BIN1: 14, BIN2: 13, PWMB: 33 };
 const DEFAULTS = {
   pins: { PWMA: '', AIN1: '', AIN2: '', STBY: '', BIN1: '', BIN2: '', PWMB: '' },
-  mac: '01:02:03:04:05:06',
+  mac: '98:B6:E9:85:31:E4',
   normal: 70, attack: 85, ramp: 6, turn: 75, expo: 40, dead: 8, brake: 20,
   leftOnA: true, invL: false, invR: false,
   pLeftOnA: true, pInvL: false, pInvR: false,
@@ -775,6 +832,7 @@ function loadSettings() {
   const s = JSON.parse(JSON.stringify(DEFAULTS));
   if (saved && typeof saved === 'object') {
     for (const k of Object.keys(DEFAULTS)) if (k in saved && k !== 'pins') s[k] = saved[k];
+    if (s.mac === '01:02:03:04:05:06') s.mac = DEFAULTS.mac;
     if (saved.pins) for (const p of PIN_NAMES) if (p in saved.pins) s.pins[p] = String(saved.pins[p]);
   }
   return s;
@@ -798,21 +856,21 @@ function makeFw(cfg) {
   const rampa = (actual, objetivo, paso) => actual + limitar(objetivo - actual, -paso, paso);
   function pasoControl(st, inp, dt) {
     if (!inp.conectado) { st.parada = true; st.salIzq = st.salDer = 0; return 'desconectado'; }
-    if (inp.cruz) st.parada = true;
-    const centrado = zonaMuerta(inp.lx) === 0 && zonaMuerta(inp.ly) === 0 && inp.r2 < 0.1;
+    if (inp.parar) st.parada = true;
+    const centrado = zonaMuerta(inp.lx) === 0 && zonaMuerta(inp.ly) === 0 && inp.zr < 0.1;
     if (st.parada && inp.rearmar && centrado) st.parada = false;
     if (st.parada) { st.salIzq = st.salDer = 0; return 'parada'; }
-    if (inp.l2 > cfg.UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return 'freno'; }
+    if (inp.zl > cfg.UMBRAL_FRENO) { st.salIzq = st.salDer = 0; return 'freno'; }
     const avance = curvaExpo(zonaMuerta(inp.ly));
     const giro = curvaExpo(zonaMuerta(inp.lx)) * cfg.GANANCIA_GIRO;
     let izq = avance + giro, der = avance - giro;
     const m = Math.max(Math.abs(izq), Math.abs(der));
     if (m > 1) { izq /= m; der /= m; }
-    const limite = cfg.LIMITE_NORMAL + (cfg.LIMITE_ATAQUE - cfg.LIMITE_NORMAL) * inp.r2;
+    const limite = cfg.LIMITE_NORMAL + (cfg.LIMITE_ATAQUE - cfg.LIMITE_NORMAL) * inp.zr;
     const paso = cfg.RAMPA * dt;
     st.salIzq = rampa(st.salIzq, izq * limite, paso);
     st.salDer = rampa(st.salDer, der * limite, paso);
-    return inp.r2 > 0.1 ? 'ataque' : 'normal';
+    return inp.zr > 0.1 ? 'ataque' : 'normal';
   }
   // Escritura de pines: moverMotor / frenarMotor / STBY, igual que loop()
   function escribirPines(modo, st) {
@@ -1014,22 +1072,22 @@ function resetRound() {
 }
 
 function aiInput(ai, me, t) {
-  const inp = { conectado: true, lx: 0, ly: 0, r2: 0, l2: 0, cruz: false, rearmar: true };
+  const inp = { conectado: true, lx: 0, ly: 0, zr: 0, zl: 0, parar: false, rearmar: true };
   if (t < 1.0 || me.out) return inp;
   const err = wrap(Math.atan2(me.y - ai.y, me.x - ai.x) - ai.th);
   inp.lx = limitar(-err * 1.6, -1, 1);
   inp.ly = Math.cos(err) > 0.6 ? 0.9 : 0.15;
-  inp.r2 = Math.abs(err) < 0.25 ? 1 : 0;
+  inp.zr = Math.abs(err) < 0.25 ? 1 : 0;
   const r = Math.hypot(ai.x, ai.y);
   if (r > RING_R - 0.07) {
     const e2 = wrap(Math.atan2(-ai.y, -ai.x) - ai.th);
-    if (Math.abs(e2) > 1.3) { inp.ly = -0.7; inp.lx = limitar(e2 > 0 ? 1 : -1, -1, 1); inp.r2 = 0; }
+    if (Math.abs(e2) > 1.3) { inp.ly = -0.7; inp.lx = limitar(e2 > 0 ? 1 : -1, -1, 1); inp.zr = 0; }
   }
   return inp;
 }
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
-let input = { conectado: true, lx: 0, ly: 0, r2: 0, l2: 0, cruz: false, rearmar: false };
+let input = { conectado: true, lx: 0, ly: 0, zr: 0, zl: 0, parar: false, rearmar: false };
 function controlTick(dt) {
   const inp = Object.assign({}, input, { conectado: input.conectado && !sim.lossOfSignal });
   sim.mode = FW.pasoControl(sim.st, inp, dt);
@@ -1109,7 +1167,7 @@ function readGamepad() {
     return {
       id: gp.id, lx: gp.axes[0], ly: -gp.axes[1],
       l2: b(6).value || (b(6).pressed ? 1 : 0), r2: b(7).value || (b(7).pressed ? 1 : 0),
-      x: b(0).pressed, t: b(3).pressed || b(9).pressed, share: b(8).pressed
+      x: b(0).pressed, t: b(3).pressed, share: b(8).pressed
     };
   }
   return null;
@@ -1126,7 +1184,7 @@ function readInput() {
   if (gp) {
     if (gp.share && !prevShare) resetEdge = true;
     prevShare = gp.share;
-    if (Math.abs(gp.lx) > 0.15 || Math.abs(gp.ly) > 0.15 || gp.r2 > 0.05 || gp.l2 > 0.05 || gp.x || gp.t) lastSource = 'Mando · ' + (/054c|wireless controller|dualshock/i.test(gp.id) ? 'DS4' : 'gamepad');
+    if (Math.abs(gp.lx) > 0.15 || Math.abs(gp.ly) > 0.15 || gp.r2 > 0.05 || gp.l2 > 0.05 || gp.x || gp.t) lastSource = 'Mando · ' + (/057e|pro controller|switch|nintendo/i.test(gp.id) ? 'Switch' : 'gamepad');
   }
   const g = gp || { lx: 0, ly: 0, r2: 0, l2: 0, x: false, t: false };
   const ts = touchState;
@@ -1135,8 +1193,8 @@ function readInput() {
     conectado: true,
     lx: limitar(pickAxis(kb.lx, g.lx, ts.lx), -1, 1),
     ly: limitar(pickAxis(kb.ly, g.ly, ts.ly), -1, 1),
-    r2: Math.max(kb.r2, g.r2, ts.r2), l2: Math.max(kb.l2, g.l2, ts.l2),
-    cruz: kb.x || g.x || ts.x, rearmar: kb.t || g.t || ts.t
+    zr: Math.max(kb.r2, g.r2, ts.r2), zl: Math.max(kb.l2, g.l2, ts.l2),
+    parar: kb.x || g.x || ts.x, rearmar: kb.t || g.t || ts.t
   };
 }
 
@@ -1456,7 +1514,7 @@ function generateFirmware() {
   const rep = pinReport();
   const tpl = $('tplFirmware').textContent;
   const vals = {
-    MAC: MAC_RE.test(S.mac) ? S.mac.toUpperCase() : '01:02:03:04:05:06',
+    MAC: MAC_RE.test(S.mac) ? S.mac.toUpperCase() : DEFAULTS.mac,
     IZQ_EN_A: String(!!S.leftOnA), INV_IZQ: String(!!S.invL), INV_DER: String(!!S.invR),
     NORMAL: ff(S.normal / 100), ATTACK: ff(S.attack / 100), RAMP: ff(S.ramp), TURN: ff(S.turn / 100),
     EXPO: ff(S.expo / 100), DEADZONE: ff(S.dead / 100), BRAKE: ff(S.brake / 100)
@@ -1536,20 +1594,20 @@ function motorCard(el, title) {
 }
 let cards = null;
 const MODE_TXT = { desconectado: 'Sin señal', parada: 'Parada', freno: 'Freno', normal: 'Normal', ataque: 'Ataque' };
-const LIGHT = { parada: '#ff0000', freno: '#ffffff', ataque: '#ff5000', normal: '#003cff', desconectado: '#3a3a3a' };
+const LEDS = { parada: 0x09, freno: 0x06, ataque: 0x0F, normal: 0x01, desconectado: 0 };
 
 function updatePanel() {
   const m = sim.mode;
   $('modeChip').className = 'chip m-' + m; $('modeTxt').textContent = MODE_TXT[m];
   $('srcChip').textContent = lastSource;
-  // DS4
+  // Mando
   const dz = S.dead / 100;
   $('dzRing').style.width = $('dzRing').style.height = (dz * 80 + 2) + 'px';
   $('stickDot').style.transform = `translate(${input.lx * 38}px, ${-input.ly * 38}px)`;
-  $('barL2').style.width = input.l2 * 100 + '%'; $('valL2').textContent = Math.round(input.l2 * 255);
-  $('barR2').style.width = input.r2 * 100 + '%'; $('valR2').textContent = Math.round(input.r2 * 255);
-  $('pbX').classList.toggle('on', input.cruz); $('pbT').classList.toggle('on', input.rearmar);
-  const lb = $('lightbar'); lb.style.background = LIGHT[m]; lb.style.color = LIGHT[m];
+  $('barL2').style.width = input.zl * 100 + '%'; $('valL2').textContent = Math.round(input.zl * 1023);
+  $('barR2').style.width = input.zr * 100 + '%'; $('valR2').textContent = Math.round(input.zr * 1023);
+  $('pbX').classList.toggle('on', input.parar); $('pbT').classList.toggle('on', input.rearmar);
+  document.querySelectorAll('#pled i').forEach((el, i) => el.classList.toggle('on', !!(LEDS[m] & (1 << i))));
   const conn = !sim.lossOfSignal;
   $('connTag').className = 'tag ' + (conn ? 'good' : 'bad'); $('connTag').textContent = conn ? 'Conectado' : 'Sin señal';
   // Pines
@@ -1590,12 +1648,12 @@ function updatePanel() {
   // Aviso central
   let t = '', p = '';
   if (sim.over) {
-    if (sim.result === 'me') { t = '¡Rival fuera!'; p = 'Punto para ti. Pulsa <kbd>R</kbd> o SHARE para otra ronda.'; }
-    else if (sim.result === 'opp') { t = 'Has caído'; p = 'Punto para el rival. Pulsa <kbd>R</kbd> o SHARE para otra ronda.'; }
+    if (sim.result === 'me') { t = '¡Rival fuera!'; p = 'Punto para ti. Pulsa <kbd>R</kbd> o − para otra ronda.'; }
+    else if (sim.result === 'opp') { t = 'Has caído'; p = 'Punto para el rival. Pulsa <kbd>R</kbd> o − para otra ronda.'; }
     else if (sim.result === 'draw') { t = 'Caen los dos'; p = 'Ronda nula. Pulsa <kbd>R</kbd> para repetir.'; }
-    else { t = 'Fuera del dohyo'; p = 'Pulsa <kbd>R</kbd> o SHARE para volver al centro.'; }
-  } else if (m === 'desconectado') { t = 'Mando desconectado'; p = 'El firmware puso STBY a LOW. Al recuperar la señal hay que rearmar con △.'; }
-  else if (m === 'parada') { t = 'Robot en parada'; p = 'Pulsa <kbd>T</kbd> o △ con el stick centrado y R2 suelto para armarlo.'; }
+    else { t = 'Fuera del dohyo'; p = 'Pulsa <kbd>R</kbd> o − para volver al centro.'; }
+  } else if (m === 'desconectado') { t = 'Mando desconectado'; p = 'El firmware puso STBY a LOW. Al recuperar la señal hay que rearmar con X.'; }
+  else if (m === 'parada') { t = 'Robot en parada'; p = 'Pulsa <kbd>T</kbd> o X del mando con el stick centrado y ZR suelto para armarlo.'; }
   $('banner').hidden = !t;
   if (t) { $('bannerT').textContent = t; $('bannerP').innerHTML = p; }
 }
