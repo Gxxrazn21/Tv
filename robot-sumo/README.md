@@ -31,8 +31,8 @@ mismos niveles en los pines del TB6612FNG (STBY, AIN1/AIN2/PWMA, BIN1/BIN2/PWMB)
 alimentan un modelo de motor de corriente continua (par y corriente de bloqueo, RPM sin carga),
 tracción limitada por el agarre de las ruedas y una cuña que levanta al rival. El panel muestra:
 
-- **Control:** stick, gatillos, barra de luz del mando, estado de cada pin y tensión, RPM, corriente
-  y tracción de cada motor, LED de jugador del mando, con las marcas de 1,2 A continuos y 3,2 A de pico del TB6612FNG.
+- **Control:** stick, gatillos, LED de jugador del mando, estado de cada pin y tensión, RPM,
+  corriente y tracción de cada motor, con las marcas de 1,2 A continuos y 3,2 A de pico del TB6612FNG.
 - **Ajustes:** los 7 GPIO (con validación de pines de flash, solo entrada y arranque), límites de
   potencia, rampa, giro, expo y zona muerta, y un «cableado físico simulado» para ensayar la prueba
   de giro cruzando motores.
